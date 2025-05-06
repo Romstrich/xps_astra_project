@@ -1,0 +1,45 @@
+Есть способ как загрузить пользовательский шрифт в TKinter и чтобы это работало
+
+1-ое решение:
+
+from tkinter import *
+from tkinter import font
+
+root = Tk()
+
+custom_font_path = "сюда_полный_путь_к_шрифту"
+custom_font = font.Font(family="CustomFont", size=12, name="custom_font")
+custom_font.configure(family=custom_font_path)
+
+label = Label(root, text="Hello world!", font=custom_font)
+label.pack()
+
+root.mainloop()
+Может произойти так, что он не загрузит твой шрифт. Если это так и произошло, то попробуй 2 способ.
+
+2-ое решение:
+
+from tkinter import *
+from PIL import Image, ImageDraw, ImageFont
+
+root = Tk()
+
+# Загрузка пользовательского шрифта
+custom_font_path = "сюда_полный_путь_к_шрифту"
+custom_font_size = 24
+custom_font = ImageFont.truetype(custom_font_path, custom_font_size)
+
+# Создание изображения с текстом, используя пользовательский шрифт
+image = Image.new("RGB", (300, 100), "white")
+draw = ImageDraw.Draw(image)
+draw.text((10, 10), "Hello, World!", font=custom_font, fill="black")
+image.save("text_image.png")
+
+# Отображение изображения в Tkinter
+photo = PhotoImage(file="text_image.png")
+label = Label(root, image=photo)
+label.image = photo  # чтобы изображение не удалилось из памяти
+label.pack()
+
+root.mainloop()
+Я надеюсь что я решил твою проблему :)

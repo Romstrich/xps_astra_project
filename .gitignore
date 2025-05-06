@@ -1,0 +1,9 @@
+/.idea
+/venv
+/old
+/build
+*.xps
+*.dst
+/MODULES_OLD
+/Выпавшее
+

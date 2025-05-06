@@ -1,0 +1,240 @@
+'''
+    ==============================Модуль данных об АРМ====================
+
+                                    Версия 0.3 для xps_astra
+                            В данном модуле получаем сведения
+        1. Серийные номера и модели носителей
+        2. MAC-адреса сетевых интерфейсов
+        3. Версия ViPNet
+        4. Версия KESL
+        5. Информация о КриптоПро
+'''
+
+
+from diskinfo import DiskInfo
+from getmac import get_mac_address
+from socket import gethostname
+from os import popen
+from  os.path import isfile
+from re import search
+
+
+from module_vipnet import My_ViPNet
+
+SEPORATOR='-----\n\t'
+#{SEPORATOR}
+SEPOR_SECTION='     -------------------------------------'
+SEPOR_RUN='\n     =====================================\n'
+
+class My_pasport:
+    def __init__(self):
+        try:
+            self.hostname=gethostname()         #+
+            self.astra_version=self.getAstraVersion()               #+
+            self.astra_update_version=self.getAstraUpdate()       #+
+            self.ip=self.getIPaddres()          #+
+            self.mac=self.getMac()              #+
+            self.volumes=self.getVolumes()      #+
+            #self.interfaces=[] считаем, что у нас один сетефой интерфейс
+            self.cpro=self.getCpro()                        #+
+            self.vipnet=My_ViPNet().checkViPNet()#+
+            self.kesl=self.getKesl()                       #+
+        except BaseException as error:
+            print(f'{SEPORATOR}Ошибка инициализации:\n\t{error}')
+
+    def getVolumes(self):
+        '''Возвращает список несъёмых носителей
+        словарь диска:
+                    path    /dev/sda/ (sdb,nvme итд)
+                    model   модель
+                    serial  серийный номер
+                    size    размер (попробуем в гигабайтах)
+                    !!! Есть недостаток !!!
+                    Может вернуть SD-карту
+                    '''
+        volumes=[]
+        try:
+            volumeList=DiskInfo().get_disk_list()
+            for i in volumeList:
+                if not 'sr' in i.get_name():  #исключаем дисководы
+                    #Исключить SD-карты! if not 'mmc' in i.get_name()?
+                    if not 'loop' in i.get_name():
+                        if not 'usb' in str(i.get_byid_path()): #исключаем usb-носители
+                            #print(f'{i.get_name()},{i.get_path()},{i.get_model()},{i.get_serial_number()},{int(i.get_size()/2097152)} GB')#напечатаем список. После контрольной проверки зарядим единую функцию
+                            volumes.append({'name':i.get_name(),
+                                            'path':i.get_path(),
+                                            'model':i.get_model(),
+                                            'serial':i.get_serial_number(),
+                                            'size':int(i.get_size()/2097152)})
+        except BaseException as error:
+            print(f'При определении носителей возникла ошибка: {error}')
+        return volumes
+
+    def printVolumes(self):
+        '''
+        Распечатка несъёмных носителей
+        '''
+        if len(self.volumes):
+            print(f'{SEPORATOR}Список несъёмных носителей:')
+            for i in self.volumes:
+                print(f'-Диск: {i.get("name")};')
+                print(f'\tМодель: {i.get("model")};')
+                print(f'\tСерийный номер: {i.get("serial")};')
+                print(f'\tОбъём: {i.get("size")} GB;')
+                print(f'\tРасположение: {i.get("path")};')
+        else:
+            print(f'{SEPORATOR}Список несъёмных носителей пуст.')
+
+    def printViPNet(self):
+        if self.vipnet:
+            print(f'{SEPORATOR}Установлен ViPNet-клиент версии:\n\t{self.vipnet}')
+        else:
+            print(f'{SEPORATOR}Вероятно, ViPNet-клиент в данной системе не установлен')
+
+    def getMac(self):
+        '''Возвращаем активный mac
+        Считаем, что у нас толко один сетевой интерфейс'''
+        return [get_mac_address()]
+
+    def printMac(self):
+        if len(self.mac):
+            print(f'{SEPORATOR}Список MAC-адресов:')
+            for i in self.mac:
+                print(f'\t{i}')
+        else:
+            print(f'{SEPORATOR}Список MAC-адресов пуст.')
+
+    def getIPaddres(self):
+        '''
+        Вернём ip - адрес активного соединения
+        '''
+        try:
+            out=popen('ip -h -br a | grep UP').read()
+            ip=search(r'\d+\.\d+\.\d+\.\d+',out).group()
+            return ip
+        except BaseException as error:
+            print(f'При определении IP-адреса возникла ошибка: {error}')
+            return False
+
+    def printIP(self):
+        if self.ip:
+            print(f'{SEPORATOR}Текущий IPv4-адрес:\n\t{self.ip}')
+        else:
+            print(f'{SEPORATOR}IP-адрес не определён.')
+
+    def printHostName(self):
+        if self.hostname:
+            print(f'{SEPORATOR}Сетевое имя:\n\t{self.hostname}')
+        else:
+            print(f'{SEPORATOR}Сетевое имя не определёно.')
+
+    def getKesl(self):
+        try:
+            out = popen('kesl-control --app-info').read()
+            out=out.split()
+            for i in range(0,len(out)-1):
+                #print(out[i])
+                if out[i]=='Version:':
+                    return out[i+1]
+        except BaseException as error:
+            print(f'При определении версии Касперский для Linux возникла ошибка: {error}')
+            return False
+
+    def printKesl(self):
+        if self.kesl:
+            print(f'{SEPORATOR}Версия Касперский для Linux:\n\t{self.kesl}')
+        else:
+            print(f'{SEPORATOR}Версия Касперский для Linux не определёна.')
+
+    def getCpro(self):
+        try:
+            if isfile('/opt/cprocsp/bin/amd64/csptestf'):
+                out = popen('/opt/cprocsp/bin/amd64/csptestf -enum -info | head -n 1').read()
+                #out = out.split()
+                return out
+            else:
+                return False
+        except BaseException as error:
+            print(f'При определении версии КриптоПро для Linux возникла ошибка: {error}')
+            return False
+
+    def printCpro(self):
+        if self.cpro:
+            print(f'{SEPORATOR}Версия КриптоПро для Linux:\n\t{self.cpro}')
+        else:
+            print(f'{SEPORATOR}Версия КриптоПро для Linux не определёна.')
+
+    def getAstraVersion(self):
+        try:
+            if isfile('/etc/astra_version'):
+                out = popen('cat /etc/astra_version').read()
+                # out = out.split()
+                return out
+            else:
+                return False
+        except BaseException as error:
+            print(f'При определении версии Astra Linux возникла ошибка: {error}')
+            return False
+
+    def getAstraUpdate(self):
+        try:
+            if isfile('/etc/astra_update_version'):
+                out = popen('cat /etc/astra_update_version').read()
+                # out = out.split()
+                return out
+            else:
+                 return False
+        except BaseException as error:
+            print(f'При определении обновления Astra Linux возникла ошибка: {error}')
+            return False
+
+    def printAstraVersion(self):
+        if self.astra_version:
+            print(f'{SEPORATOR}Информация о системе Astra Linux:\n\t{self.astra_version}')
+        else:
+            print(f'{SEPORATOR}Версия Astra Linux не определёна.')
+
+    def printAstraUpdate(self):
+        if self.astra_update_version:
+            print(f'{SEPORATOR}Информация об обновлениях Astra Linux:\n\t{self.astra_update_version}')
+        else:
+            print(f'{SEPORATOR}Информация об обновлениях Astra Linux не определёна.')
+
+    def runCLI(self):
+        print('Тест модуля "паспорт АРМ":')
+        print(SEPOR_RUN)
+
+        print(SEPOR_SECTION)
+        self.printAstraVersion()
+        self.printAstraUpdate()
+
+        print(SEPOR_SECTION)
+        self.printHostName()
+        self.printIP()
+        self.printMac()
+
+        print(SEPOR_SECTION)
+        self.printVolumes()
+
+        print(SEPOR_SECTION)
+        self.printViPNet()
+        self.printKesl()
+        self.printCpro()
+
+        print(SEPOR_RUN)
+        print(SEPOR_SECTION)
+        print("\tASTRA PASPORT V.0.2\n\tМотрич Р.Д.\n\tascent.mrd@yandex.ru\n\tоктябрь 2024 г.\n")
+
+        return 0
+
+if __name__=='__main__':
+
+    #try:
+    pasport = My_pasport()
+    pasport.runCLI()
+
+    #except BaseException as error:
+        #print(f'Ошибка выполнения:\n\t{error}')
+
+else:
+    print('module_passport was loading like module')

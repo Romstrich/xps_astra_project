@@ -1,0 +1,110 @@
+Для определения пользователя - администратора, а также
+        who - сессии
+        groups <username> - группы
+        В АСТРЕ группы администратора:
+            user : user cdrom floppy audio dip video plugdev netdev lpadmin scanner astra-console astra-admin vboxsf
+        Обычный пользователь:
+            test1 : test1 dialout cdrom floppy audio video plugdev users
+        Пользователь root
+            root : root
+
+        logname -
+        даёт имя авторизованного пользователя из любого положения
+
+Разрешение использования sudo
+        if sudo -S -p '' echo -n < /dev/null 2> /dev/null ; then echo 'Sudo is enabled.' ; else echo 'Sudo is not enabled' ; fi
+
+Открыть ссылку в браузере по-умолчанию
+        xdg-open http://ya.r
+
+
+Команды для ViPNet
+
+        установить ключ с паролем
+        sudo vipnetclient installkeys Desktop/xps/forALSEsudis/abn_0246.dst --psw <password>
+
+        Остановить vipnet, Удалить ключ с подтверждением
+        sudo vipnetclient stop || yes y | sudo vipnetclient deletekeys
+
+Использование модуля Pathlib
+Метод pathlib.Метод Path().suffix модуля Pathlib может использоваться для извлечения расширения пути к файлу. Этот метод предпочтителен для объектно-ориентированного подхода.
+
+import pathlib
+
+# function to return the file extension
+file_extension = pathlib.Path('my_file.txt').suffix
+print("File Extension: ", file_extension)
+
+Запуск Х-терменала
+        x-terminal-emulator -e команда
+
+Внешний вид запроса ViPNet info:
+
+        Когда есть ключ:
+        Version             4.9.0-6489
+        VPN status          enabled
+
+        Host name           2586 УТ Леснорядская 11 13 Мотрич Р.Д. Linux
+        Host ID             0A1A0248
+        Permissions level   maximum
+        Roles               0x17, 0x91
+        Active coordinator  0A1A000A, 2586 1000 УТ по ЦФО Леснорядская 11-13, 11.0.0.1
+        ViPNet network name УТ МВД России по ЦФО
+        ViPNet network ID   2586
+        Keys issued on      2023-08-01 14:01:42
+
+        Keys                Keys have been installed and verified (/root/.vipnet)
+        License status      Your license is unlimited
+
+        User                root
+        Process ID          #1817
+        Logging level       3
+        DNS status          enabled
+        Fault-tolerance     enabled(10)
+        Autostart           enabled
+
+        Когда Vipnet остановлен:
+        Version             4.9.0-6489
+        VPN status          disabled
+
+        Host name           2586 УТ Леснорядская 11 13 Мотрич Р.Д. Linux
+        Host ID             0A1A0248
+        Permissions level   maximum
+        Roles               0x17, 0x91
+        Active coordinator  0A1A000A, 2586 1000 УТ по ЦФО Леснорядская 11-13, 11.0.0.1
+        ViPNet network name УТ МВД России по ЦФО
+        ViPNet network ID   2586
+        Keys issued on      2023-08-01 14:01:42
+
+        Keys                Keys have been installed and verified (/root/.vipnet)
+        License status      Your license is unlimited
+
+        User                root
+        Process ID          #1817
+        Logging level       3
+        DNS status          disabled
+        Fault-tolerance     disabled
+        Autostart           enabled
+
+        Когда нет ключа
+        Version             4.9.0-6489
+        VPN status          disabled
+
+        Keys                Keys have not been installed or verification failed
+
+        User                root
+        Process ID          #1817
+        Logging level       3
+
+Есть команда, которая знает о вашем браузере по умолчанию:
+
+xdg-open http://google.com
+Это также будет работать для любой другой тип URI (Uniform Resource Identifier), например изображения, которые будут автоматически открываться с помощью eog, документов openoffice и т. Д., А также путей к файловой системе (xdg-open /tmp/foobar.png).
+
+Существует также
+
+xdg-email team@stackexchange.com
+и
+
+xdg-mime query default text/html
+Чтобы узнать, какое приложение будет использоваться.
