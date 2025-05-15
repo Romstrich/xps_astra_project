@@ -42,16 +42,18 @@ class My_ViPNet():
         :return:
         '''
         try:
-            command2 = ['vipnetclient', '--verson']
+            # command2 = ['vipnetclient', '--verson']
+            ViPNetInfo2 = os.popen('vipnetclient --version').read()
         # subprocess.run(command2, stdin=comm1.stdout)
-            comm2 = subprocess.run(command2, stdout=subprocess.PIPE)
-            ViPNetInfo2 = comm2.stdout.decode('utf-8').split()
+            #comm2 = subprocess.run(command2, stdout=subprocess.PIPE)
+            #ViPNetInfo2 = comm2.stdout.decode('utf-8').split()
         # print(type(ViPNetInfo2))
-            self.show_message(f'ВЕРСИЯ: {ViPNetInfo2[2]}')
-            return ViPNetInfo2[2]
+            #self.show_message(f'ВЕРСИЯ: {ViPNetInfo2.split()[-1]}')
+            return ViPNetInfo2.split()[-1]
         except BaseException as e:
             self.error.append(e)
             self.show_message(f'Ошибка {e}')
+            return False
         else:
             pass
 

@@ -8,19 +8,22 @@
         3. Версия ViPNet
         4. Версия KESL
         5. Информация о КриптоПро
+        6. Информация о системе Astra linux
+        !!!7. Информация о пакетах SUDIS
 '''
-
+import os
 
 from diskinfo import DiskInfo
 from getmac import get_mac_address
 from socket import gethostname
 from os import popen
-from  os.path import isfile
+from  os.path import isfile, isdir, abspath
 from re import search
-
 
 from module_vipnet import My_ViPNet
 
+
+VERSION='0.3'
 SEPORATOR='-----\n\t'
 #{SEPORATOR}
 SEPOR_SECTION='     -------------------------------------'
@@ -31,12 +34,14 @@ class My_pasport:
         try:
             self.hostname=gethostname()         #+
             self.astra_version=self.getAstraVersion()               #+
-            self.astra_update_version=self.getAstraUpdate()       #+
+            self.astra_update_version=self.getAstraUpdate()  #+
+            self.astra_build_version = self.getAstraBuild()
             self.ip=self.getIPaddres()          #+
             self.mac=self.getMac()              #+
             self.volumes=self.getVolumes()      #+
             #self.interfaces=[] считаем, что у нас один сетефой интерфейс
             self.cpro=self.getCpro()                        #+
+            self.cproLic=self.getCproLicense()
             self.vipnet=My_ViPNet().checkViPNet()#+
             self.kesl=self.getKesl()                       #+
         except BaseException as error:
@@ -148,9 +153,16 @@ class My_pasport:
 
     def getCpro(self):
         try:
-            if isfile('/opt/cprocsp/bin/amd64/csptestf'):
-                out = popen('/opt/cprocsp/bin/amd64/csptestf -enum -info | head -n 1').read()
-                #out = out.split()
+            verFile=''
+            if isdir('/etc/opt/cprocsp/'):
+                for i in os.listdir('/etc/opt/cprocsp/'):
+                    if 'release' in i:
+                        verFile=abspath('/etc/opt/cprocsp/'+i)
+                out = popen(f'cat {verFile}').read()
+            # Возможно устаревшее:
+            # if isfile('/opt/cprocsp/bin/amd64/csptestf'):
+            #     out = popen('/opt/cprocsp/bin/amd64/csptestf -enum -info | head -n 1').read()
+            #     #out = out.split()
                 return out
             else:
                 return False
@@ -158,11 +170,38 @@ class My_pasport:
             print(f'При определении версии КриптоПро для Linux возникла ошибка: {error}')
             return False
 
+    def getCproLicense(self):
+    #     /opt/cprocsp/sbin/amd64/cpconfig -license -view лицензия
+    #   License validity:
+    #   5050G20000012EKNREG8M7WAR
+    #   license  - permanent
+    #   License type: Client.
+        try:
+            if isfile('/opt/cprocsp/sbin/amd64/cpconfig'):
+                out = popen('/opt/cprocsp/sbin/amd64/cpconfig -license -view').read()
+                #out = out.split()
+                return out
+            else:
+                return False
+        except BaseException as error:
+            print(f'При определении лицензии КриптоПро для Linux возникла ошибка: {error}')
+            return False
+
+
     def printCpro(self):
         if self.cpro:
             print(f'{SEPORATOR}Версия КриптоПро для Linux:\n\t{self.cpro}')
         else:
             print(f'{SEPORATOR}Версия КриптоПро для Linux не определёна.')
+
+    def printCproLicense(self):
+        if self.cproLic:
+
+            print(f'{SEPORATOR}Информация о лицензии КриптоПро для Linux:')
+            for i in self.cproLic.split('\n'):
+                print(f'\t{i}')
+        else:
+            print(f'{SEPORATOR}Лицензия КриптоПро для Linux не определёна.')
 
     def getAstraVersion(self):
         try:
@@ -188,6 +227,18 @@ class My_pasport:
             print(f'При определении обновления Astra Linux возникла ошибка: {error}')
             return False
 
+    def getAstraBuild(self):
+        try:
+            if isfile('/etc/astra/build_version'):
+                out = popen('cat /etc/astra/build_version').read()
+                # out = out.split()
+                return out
+            else:
+                 return False
+        except BaseException as error:
+            print(f'При определении сборки Astra Linux возникла ошибка: {error}')
+            return False
+
     def printAstraVersion(self):
         if self.astra_version:
             print(f'{SEPORATOR}Информация о системе Astra Linux:\n\t{self.astra_version}')
@@ -200,13 +251,33 @@ class My_pasport:
         else:
             print(f'{SEPORATOR}Информация об обновлениях Astra Linux не определёна.')
 
+    def printAstraBuild(self):
+        if self.astra_build_version:
+            print(f'{SEPORATOR}Информация о сборке Astra Linux:\n\t{self.astra_build_version}')
+        else:
+            print(f'{SEPORATOR}Информация о сборке Astra Linux не определёна.')
+
+    def getSudisInfo(self):
+        pass
+
+    def printSudisInfo(self):
+        pass
+
     def runCLI(self):
-        print('Тест модуля "паспорт АРМ":')
+        print(f'Тест модуля "паспорт АРМ {VERSION}" :')
+        # Получаем информацию через модуль permissions
+        # Отдаём необходимые предупреждения
+        try:
+            import module_permissions
+        except BaseException as error:
+            print(f'{SEPORATOR}Ошибка подключения module_permissions:\n\t{error}')
+
         print(SEPOR_RUN)
 
         print(SEPOR_SECTION)
         self.printAstraVersion()
         self.printAstraUpdate()
+        self.printAstraBuild()
 
         print(SEPOR_SECTION)
         self.printHostName()
@@ -220,21 +291,22 @@ class My_pasport:
         self.printViPNet()
         self.printKesl()
         self.printCpro()
+        self.printCproLicense()
 
         print(SEPOR_RUN)
         print(SEPOR_SECTION)
-        print("\tASTRA PASPORT V.0.2\n\tМотрич Р.Д.\n\tascent.mrd@yandex.ru\n\tоктябрь 2024 г.\n")
+        print("\tASTRA PASPORT V.0.3\n\tМотрич Р.Д.\n\tascent.mrd@yandex.ru\n\t2025 г.\n")
 
         return 0
 
 if __name__=='__main__':
 
-    #try:
-    pasport = My_pasport()
-    pasport.runCLI()
+    try:
+        pasport = My_pasport()
+        pasport.runCLI()
 
-    #except BaseException as error:
-        #print(f'Ошибка выполнения:\n\t{error}')
+    except BaseException as error:
+        print(f'Ошибка выполнения:\n\t{error}')
 
 else:
     print('module_passport was loading like module')

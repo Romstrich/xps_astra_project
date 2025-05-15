@@ -171,7 +171,10 @@ class My_Permissions():
 
         try:
             print('Запуск команды')
-            shTest = subprocess.run(shString)  # ,stdout=subprocess.STDOUT)
+            #shTest = subprocess.run(shString, capture_output=True, text=True)#, shell=True)# ,stdout=subprocess.PIPE)#capture_output=True,
+            os.system('sudo '+command) #тестовый вариант)
+            #вариант команды:vipnetclient stop; sudo yes | sudo vipnetclient deletekeys - работает удовлетворительно
+
         except BaseException as error:
             print(f'Возникла ошибка {error}')
             return False
@@ -198,4 +201,5 @@ if __name__ == '__main__':
     # if my_perm.sudoCanRun:
     com=input('Введите команду для выполнения в режиме su\n')
     my_perm.runSudoCommand(com)
+    #my_perm.runSudoCommand('ls \\n| grep .py')
         # my_perm.checkSudoRun('1')
