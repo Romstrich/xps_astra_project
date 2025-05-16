@@ -19,6 +19,8 @@ from chardet import detect
 
 from module_messenger import Messenger
 
+VERSION='0.2'
+
 # TEST_SUDO_COMMAND="if sudo -S -p '' echo -n < /dev/null 2> /dev/null ; then echo 'enabled.' ; else echo 'disabled' ; fi"
 class My_Permissions():
     '''
@@ -94,7 +96,7 @@ class My_Permissions():
         else:
             # if self.termOwner == 'root':
             if self.sudoAccess:
-                print('проверка при инициализации')
+                print('permissions проверка при инициализации')
                 sudoTest = subprocess.run(['sudo','-A','ls','/root'], stdout=subprocess.PIPE)
             #elif not self.sudoAccess:
             else:
@@ -203,3 +205,5 @@ if __name__ == '__main__':
     my_perm.runSudoCommand(com)
     #my_perm.runSudoCommand('ls \\n| grep .py')
         # my_perm.checkSudoRun('1')
+else:
+    print('module_permissions was loading like module')

@@ -14,3 +14,8 @@
         Мотрич Р.Д. ascent.mrd@yandex.ru 2025 г.
     ---------------------------------------------------------------------
 '''
+if __name__=='__main__':
+    pass
+    #Проверим аргументы
+else:
+    print('CLI_module was loading like module')

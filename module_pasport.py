@@ -1,6 +1,6 @@
 '''
     ==============================Модуль данных об АРМ====================
-
+    ---------------------------------------------------------------------
                                     Версия 0.3 для xps_astra
                             В данном модуле получаем сведения
         1. Серийные номера и модели носителей
@@ -9,7 +9,9 @@
         4. Версия KESL
         5. Информация о КриптоПро
         6. Информация о системе Astra linux
-        !!!7. Информация о пакетах SUDIS
+        7. Информация о пакетах SUDIS
+        8. Информация об установленном системном ключе ViPNet
+    ---------------------------------------------------------------------
 '''
 import os
 
@@ -17,33 +19,50 @@ from diskinfo import DiskInfo
 from getmac import get_mac_address
 from socket import gethostname
 from os import popen
-from  os.path import isfile, isdir, abspath
+from os.path import isfile, isdir, abspath
 from re import search
 
 from module_vipnet import My_ViPNet
+from module_permissions import My_Permissions
 
+VERSION = '0.3'
+SEPORATOR = '-----\n\t'
+# {SEPORATOR}
+SEPOR_SECTION = '     -------------------------------------'
+SEPOR_RUN = '\n     =====================================\n'
 
-VERSION='0.3'
-SEPORATOR='-----\n\t'
-#{SEPORATOR}
-SEPOR_SECTION='     -------------------------------------'
-SEPOR_RUN='\n     =====================================\n'
 
 class My_pasport:
     def __init__(self):
         try:
-            self.hostname=gethostname()         #+
-            self.astra_version=self.getAstraVersion()               #+
-            self.astra_update_version=self.getAstraUpdate()  #+
-            self.astra_build_version = self.getAstraBuild()
-            self.ip=self.getIPaddres()          #+
-            self.mac=self.getMac()              #+
-            self.volumes=self.getVolumes()      #+
-            #self.interfaces=[] считаем, что у нас один сетефой интерфейс
-            self.cpro=self.getCpro()                        #+
-            self.cproLic=self.getCproLicense()
-            self.vipnet=My_ViPNet().checkViPNet()#+
-            self.kesl=self.getKesl()                       #+
+            priv = My_Permissions()
+            self.permissions = priv
+            if priv.sudoCanRun:
+                pass
+            else:
+                print('Нет привелегий, данные могут быть неверны, либо не получены!!!')
+        except BaseException as error:
+            print('Нет привелегий, данные могут быть неверны, либо не получены!!!')
+
+        try:
+            self.hostname = gethostname()  # +
+            self.astra_version = self.getAstraVersion()  # +
+            self.astra_update_version = self.getAstraUpdate()  # +
+            self.astra_build_version = self.getAstraBuild()  # +
+            self.ip = self.getIPaddres()  # +
+            self.mac = self.getMac()  # +
+            self.volumes = self.getVolumes()  # +
+            # self.interfaces=[] считаем, что у нас один сетефой интерфейс  #-
+            self.cpro = self.getCpro()  # +
+            self.cproLic = self.getCproLicense()  # +                        self.kesl = self.getKesl()  # +
+            self.sudisInfo = self.getSudisInfo()
+            self.kesl = self.getKesl()
+
+            print('Получение информации о ViPNet...')
+            vpn = My_ViPNet()
+            self.vipnet = vpn.installed  # +
+            self.vipnetKey = vpn.sysKeyInfo
+
         except BaseException as error:
             print(f'{SEPORATOR}Ошибка инициализации:\n\t{error}')
 
@@ -57,20 +76,20 @@ class My_pasport:
                     !!! Есть недостаток !!!
                     Может вернуть SD-карту
                     '''
-        volumes=[]
+        volumes = []
         try:
-            volumeList=DiskInfo().get_disk_list()
+            volumeList = DiskInfo().get_disk_list()
             for i in volumeList:
-                if not 'sr' in i.get_name():  #исключаем дисководы
-                    #Исключить SD-карты! if not 'mmc' in i.get_name()?
+                if not 'sr' in i.get_name():  # исключаем дисководы
+                    # Исключить SD-карты! if not 'mmc' in i.get_name()?
                     if not 'loop' in i.get_name():
-                        if not 'usb' in str(i.get_byid_path()): #исключаем usb-носители
-                            #print(f'{i.get_name()},{i.get_path()},{i.get_model()},{i.get_serial_number()},{int(i.get_size()/2097152)} GB')#напечатаем список. После контрольной проверки зарядим единую функцию
-                            volumes.append({'name':i.get_name(),
-                                            'path':i.get_path(),
-                                            'model':i.get_model(),
-                                            'serial':i.get_serial_number(),
-                                            'size':int(i.get_size()/2097152)})
+                        if not 'usb' in str(i.get_byid_path()):  # исключаем usb-носители
+                            # print(f'{i.get_name()},{i.get_path()},{i.get_model()},{i.get_serial_number()},{int(i.get_size()/2097152)} GB')#напечатаем список. После контрольной проверки зарядим единую функцию
+                            volumes.append({'name': i.get_name(),
+                                            'path': i.get_path(),
+                                            'model': i.get_model(),
+                                            'serial': i.get_serial_number(),
+                                            'size': int(i.get_size() / 2097152)})
         except BaseException as error:
             print(f'При определении носителей возникла ошибка: {error}')
         return volumes
@@ -96,6 +115,31 @@ class My_pasport:
         else:
             print(f'{SEPORATOR}Вероятно, ViPNet-клиент в данной системе не установлен')
 
+    def printViPNetKey(self):
+        if self.vipnetKey:
+            if self.vipnetKey['KEYSTATUS']:
+                print(f'{SEPORATOR}Информация о системном ключе ViPNet:')
+                print(f'\tИмя ключа: {" ".join(self.vipnetKey["NAME"])}')
+                print(f'\tИмя сети: {" ".join(self.vipnetKey["NETNAME"])}')
+                print(f'\tИдентификатор сети: {" ".join(self.vipnetKey["NETID"])}')
+                if self.vipnetKey["AUTOSTART"]:
+                    print(f'\tАвтоматический запуск ViPNet с системой: Включен')
+                else:
+                    print(f'\tАвтоматический запуск ViPNet с системой: Выключен')
+                if self.vipnetKey["STATUS"]:
+                    print(f'\tТекущее состояние ViPNet: Включен')
+                else:
+                    print(f'\tТекущее состояние ViPNet: Выключен')
+                print(f'\tКоординатор: {" ".join(self.vipnetKey["COORDINATOR"][3:-1])}')
+            else:
+                print(f'{SEPORATOR}Ключ ViPNet для системы не установлен')
+        else:
+            # print(f'{SEPORATOR}Ключ ViPNet в для системы не установлен')
+            if not self.permissions.sudoCanRun:
+                print('Нет привелегий! КЛЮЧ ДЛЯ ПОЛЬЗОВАТЕЛЯ НЕ ОПРЕДЕЛЯЮ')
+            else:
+                print(f'{SEPORATOR}Ключ ViPNet для системы не установлен')
+
     def getMac(self):
         '''Возвращаем активный mac
         Считаем, что у нас толко один сетевой интерфейс'''
@@ -114,8 +158,8 @@ class My_pasport:
         Вернём ip - адрес активного соединения
         '''
         try:
-            out=popen('ip -h -br a | grep UP').read()
-            ip=search(r'\d+\.\d+\.\d+\.\d+',out).group()
+            out = popen('ip -h -br a | grep UP').read()
+            ip = search(r'\d+\.\d+\.\d+\.\d+', out).group()
             return ip
         except BaseException as error:
             print(f'При определении IP-адреса возникла ошибка: {error}')
@@ -136,11 +180,11 @@ class My_pasport:
     def getKesl(self):
         try:
             out = popen('kesl-control --app-info').read()
-            out=out.split()
-            for i in range(0,len(out)-1):
-                #print(out[i])
-                if out[i]=='Version:':
-                    return out[i+1]
+            out = out.split()
+            for i in range(0, len(out) - 1):
+                # print(out[i])
+                if out[i] == 'Version:':
+                    return out[i + 1]
         except BaseException as error:
             print(f'При определении версии Касперский для Linux возникла ошибка: {error}')
             return False
@@ -153,16 +197,16 @@ class My_pasport:
 
     def getCpro(self):
         try:
-            verFile=''
+            verFile = ''
             if isdir('/etc/opt/cprocsp/'):
                 for i in os.listdir('/etc/opt/cprocsp/'):
                     if 'release' in i:
-                        verFile=abspath('/etc/opt/cprocsp/'+i)
-                out = popen(f'cat {verFile}').read()
-            # Возможно устаревшее:
-            # if isfile('/opt/cprocsp/bin/amd64/csptestf'):
-            #     out = popen('/opt/cprocsp/bin/amd64/csptestf -enum -info | head -n 1').read()
-            #     #out = out.split()
+                        verFile = abspath('/etc/opt/cprocsp/' + i)
+                out = popen(f'cat {verFile}').read().split()[-1]
+                # Возможно устаревшее:
+                # if isfile('/opt/cprocsp/bin/amd64/csptestf'):
+                #     out = popen('/opt/cprocsp/bin/amd64/csptestf -enum -info | head -n 1').read()
+                #     #out = out.split()
                 return out
             else:
                 return False
@@ -171,22 +215,17 @@ class My_pasport:
             return False
 
     def getCproLicense(self):
-    #     /opt/cprocsp/sbin/amd64/cpconfig -license -view лицензия
-    #   License validity:
-    #   5050G20000012EKNREG8M7WAR
-    #   license  - permanent
-    #   License type: Client.
+        #     /opt/cprocsp/sbin/amd64/cpconfig -license -view лицензия
         try:
             if isfile('/opt/cprocsp/sbin/amd64/cpconfig'):
                 out = popen('/opt/cprocsp/sbin/amd64/cpconfig -license -view').read()
-                #out = out.split()
+                # out = out.split()
                 return out
             else:
                 return False
         except BaseException as error:
             print(f'При определении лицензии КриптоПро для Linux возникла ошибка: {error}')
             return False
-
 
     def printCpro(self):
         if self.cpro:
@@ -222,7 +261,7 @@ class My_pasport:
                 # out = out.split()
                 return out
             else:
-                 return False
+                return False
         except BaseException as error:
             print(f'При определении обновления Astra Linux возникла ошибка: {error}')
             return False
@@ -234,7 +273,7 @@ class My_pasport:
                 # out = out.split()
                 return out
             else:
-                 return False
+                return False
         except BaseException as error:
             print(f'При определении сборки Astra Linux возникла ошибка: {error}')
             return False
@@ -258,10 +297,34 @@ class My_pasport:
             print(f'{SEPORATOR}Информация о сборке Astra Linux не определёна.')
 
     def getSudisInfo(self):
-        pass
+        try:
+            out = []
+            tmpStr = ''
+            info = popen('apt-cache show sudis*').read()
+            for line in info.splitlines():
+                for i in range(len(line.split())):
+                    if line.split()[i - 1] == 'Package:':
+                        tmpStr = line.split()[i]
+                        # print(tmpStr)
+                    elif line.split()[i - 1] == 'Version:':
+                        # print(line.split()[i])
+                        if tmpStr != '':
+                            tmpStr = tmpStr + ' ' + line.split()[i]
+                            out.append(tmpStr)
+                            # print(tmpStr)
+            # print(out)
+            return out
+        except BaseException as error:
+            print(f'При определении пакетов СУДИС возникла ошибка: {error}')
+            return False
 
     def printSudisInfo(self):
-        pass
+        if self.sudisInfo:
+            print(f'{SEPORATOR}Информация о пакетах СУДИС:')
+            for i in self.sudisInfo:
+                print(f'\t{i}')
+        else:
+            print(f'{SEPORATOR}Информация о пакетах СУДИС: не определёна.')
 
     def runCLI(self):
         print(f'Тест модуля "паспорт АРМ {VERSION}" :')
@@ -289,17 +352,24 @@ class My_pasport:
 
         print(SEPOR_SECTION)
         self.printViPNet()
+        self.printViPNetKey()
+        print(SEPOR_SECTION)
         self.printKesl()
+        print(SEPOR_SECTION)
         self.printCpro()
         self.printCproLicense()
 
+        print(SEPOR_SECTION)
+        self.printSudisInfo()
+
         print(SEPOR_RUN)
         print(SEPOR_SECTION)
-        print("\tASTRA PASPORT V.0.3\n\tМотрич Р.Д.\n\tascent.mrd@yandex.ru\n\t2025 г.\n")
+        print(f"\tASTRA PASPORT V.{VERSION}\n\tМотрич Р.Д.\n\tascent.mrd@yandex.ru\n\t2025 г.\n")
 
         return 0
 
-if __name__=='__main__':
+
+if __name__ == '__main__':
 
     try:
         pasport = My_pasport()
