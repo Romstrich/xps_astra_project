@@ -40,9 +40,9 @@ class My_pasport:
             if priv.sudoCanRun:
                 pass
             else:
-                print('Нет привелегий, данные могут быть неверны, либо не получены!!!')
+                print('!!!Нет привелегий, данные могут быть неверны, либо не получены!!!')
         except BaseException as error:
-            print('Нет привелегий, данные могут быть неверны, либо не получены!!!')
+            print('!!!Нет привелегий, данные могут быть неверны, либо не получены!!!')
 
         try:
             self.hostname = gethostname()  # +
@@ -363,6 +363,8 @@ class My_pasport:
         self.printSudisInfo()
 
         print(SEPOR_RUN)
+        if not self.permissions.sudoCanRun:
+            print('!!!Нет привелегий, данные могут быть неверны, либо не получены!!!')
         print(SEPOR_SECTION)
         print(f"\tASTRA PASPORT V.{VERSION}\n\tМотрич Р.Д.\n\tascent.mrd@yandex.ru\n\t2025 г.\n")
 
