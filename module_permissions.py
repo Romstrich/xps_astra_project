@@ -36,6 +36,7 @@ class My_Permissions():
         self.termOwner = self.detectSudoUser()  # пользователь терминала
         self.sudoAccess = self.checkSudoAccess()  # причастность к административным группам
         self.sudoCanRun = self.checkSudoRun()  # Текущее право выполнять команды sudo
+        self.userDesktop = self.detectUserDesktop()
 
 
 
@@ -185,6 +186,27 @@ class My_Permissions():
             # Возвращаем
             #return shTest.stdout.decode(detect(shTest.stdout)['encoding'])
 
+    def detectUserDesktop(self):
+        '''Определяем рабочий стол'''
+        if self.user == self.termOwner:
+            try:
+                return os.path.abspath(os.popen('xdg-user-dir DESKTOP').read())
+            except BaseException as error:
+                print(f'Ошибка функции определения рабочего стола:\n\t{error}')
+                return False
+            else:
+                pass
+        else:
+            try:
+                com='su '+self.user+' -c "systemd-path user-desktop"'
+                #print(com)
+                return os.path.abspath(os.popen(com).read())
+            except BaseException as error:
+                print(f'Ошибка функции определения рабочего стола:\n\t{error}')
+                return False
+            else:
+                pass
+
 
 
     def permissionRezume(self):
@@ -192,12 +214,14 @@ class My_Permissions():
         print(f'TERM_OWNER: {self.termOwner}')
         print(f'USER_HAVE_SUDO_ATTRIBUTES: {self.sudoAccess}')
         print(f'USER_CAN_RUN_SUDO_COMMAND: {self.sudoCanRun}')
+        print(f'USER_DESKTOP: {self.userDesktop}')
 
 
 if __name__ == '__main__':
     print(__doc__)
     my_perm=My_Permissions()
     my_perm.permissionRezume()
+    # print(my_perm.detectUserDesktop())
     # my_perm.checkSudoRun('1')
     # my_perm.permissionRezume()
     # if my_perm.sudoCanRun:

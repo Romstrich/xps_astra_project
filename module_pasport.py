@@ -169,7 +169,7 @@ class My_pasport:
         if self.ip:
             print(f'{SEPORATOR}Текущий IPv4-адрес:\n\t{self.ip}')
         else:
-            print(f'{SEPORATOR}IP-адрес не определён.')
+            print(f'{SEPORATOR}IP-адрес не определён.\n\tВозможно отсутствует соединение.')
 
     def printHostName(self):
         if self.hostname:

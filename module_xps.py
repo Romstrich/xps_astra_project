@@ -3,87 +3,152 @@
     ---------------------------------------------------------------------
     Версия 0.4 для xps_astra 0.4
 
-        Модуль работы с одностраничными xps-файлами, содержащими
+        Модуль работы с одностраничными xps и txt файлами, содержащими
     информацию для випнет.
         -
     ---------------------------------------------------------------------
 '''
+
+XPS = '.xps'
+TXT = '.txt'
+
 import fitz, re, os.path
 from pathlib import Path
 
-class Read_XPS:
+
+class ReaderXPS:
     '''
     Класс чтения xps - файла
     '''
 
-    def __init__(self, file_name=''):
+    def __init__(self, file_name=False):
         '''
         :param file_name:
             переданный файл для чтения
         self.filePath   -   путь к обрабатываемому файлу
         '''
-        self.error = []
-        self.read_list = []
-        self.filePath = self.checkFile(file_name)
+        if file_name:
+            self.filePath = self.checkFile(file_name)
+            if self.filePath:
+                self.fileSufx = Path(self.filePath).suffix
+            else:
+                self.fileSufx=False
+        else:
+            self.filePath = False
+            self.fileSufx = False
+        if self.filePath:
+            self.readList = self.readFile()
+        else:
+            self.readList = False
         self.psw = None
 
     def checkFile(self, file_name):
         '''
-        Отвечает за открытие файла, проверку и обработку ошибок
+        Отвечает за проверку файла
         :param file_name: путь к файлу
         :return:
         '''
         if os.path.isfile(file_name):
-            self.show_message(f'Файл {file_name} существует')
-            if Path(file_name).suffix=='.xps':
-                self.show_message(f'Полный путь к указанному файлу: \n\t {os.path.abspath(file_name)}')
+            print(f'Файл {file_name} существует')
+            if Path(file_name).suffix == '.xps':
+                print(f'Полный путь к указанному файлу: \n\t {os.path.abspath(file_name)}')
+                return os.path.abspath(file_name)
+            elif Path(file_name).suffix == '.txt':
+                print(f'Полный путь к указанному файлу: \n\t {os.path.abspath(file_name)}')
                 return os.path.abspath(file_name)
             else:
-                self.show_message(f'Файл {file_name} имеет неверное расширение')
-                self.error.append('wrong_file_suffix')
-                #return False
-                return os.path.abspath(file_name)
+                print(f'Файл {file_name} имеет неверное расширение')
+                # self.error.append('wrong_file_suffix')
+                return False
+                # return os.path.abspath(file_name)
         else:
-            self.show_message(f'Файл {file_name} не существует')
-            self.error.append('file_not_exists')
+            print(f'Файл {file_name} по указанному пути не существует.\n\tПроверьте путь и имя файла.')
+            # self.error.append('file_not_exists')
             return False
 
-    def readFirstPage(self):  # , file_name):
+    def readFile(self):
+        '''Читает предоставленный файл, в зависимости от типа
+         txt либо xps, для чего использует txtRead и xpsRead.
+         :return Список слов из файла для дальнейшей обработки'''
+        # Если файл есть и всё в порядке
+        print('Начнем чтение файла')
+        if self.filePath:
+            # Проверка расширения
+            if self.fileSufx == XPS:
+                print('Предоставлен формат XPS.')
+                return self.readXPSFirstPage()
+            elif self.fileSufx == TXT:
+                print('Предоставлен формат TXT.')
+                return self.readTXT()
+            else:
+                print('Ошибка: Недопустимое расширение файла.')
+                return False
+        else:
+            return False
+
+    def readXPSFirstPage(self):  # , file_name):
         '''
         Читает первую страницу файла self.filePath
         :return:self.read_list
         Возвращает список вычитаных слов
         '''
-        if len(self.error) == 0:
-            try:
-                document = fitz.open(self.filePath)
-                self.show_message('Успешное открытие файла для чтения первой страницы')
-            except BaseException as error:
-                # Добавиь ошибку в self.error
-                self.show_message(f'Возникла ошибка {error} на этапе открытия файла')
-                self.error.append(error)
-                return False
-            else:
-                pass
-            try:
-                page = document.load_page(0)
-                text = page.get_text()
-                self.show_message('Успешное чтение из файла')
-                self.read_list = [i for i in text.split()]
-                return self.read_list
-
-            except BaseException as error:
-                self.show_message(f'Возникла ошибка {error} на этапе чтения файла')
-                self.error.append(error)
-                return False
-            else:
-                self.show_message('Завершено чтение файла')
-        else:
-            self.show_message('Наличие ошибок')
-            for i in self.error:
-                self.show_message(i)
-            self.show_message('Файл не может быть прочтён')
+        # if len(self.error) == 0:
+        try:
+            document = fitz.open(self.filePath)
+            print('Успешное открытие файла для чтения первой страницы')
+        except BaseException as error:
+            # Добавиь ошибку в self.error
+            print(f'Возникла ошибка {error} на этапе открытия файла')
+            # self.error.append(error)
             return False
+        else:
+            pass
+        try:
+            page = document.load_page(0)
+            text = page.get_text()
+            print('Успешное чтение из файла')
+            # self.read_list = [i for i in text.split()]
+            outList=[i for i in text.split()]
+            print(f'Прочитано: {outList}')
+            if len(outList):
+                return outList#[i for i in text.split()]#self.read_list
+            else:
+                print('Файл пуст(нет текстовой информации).')
+                return False
+        except BaseException as error:
+            print(f'Возникла ошибка {error} на этапе чтения файла')
+            # self.error.append(error)
+            return False
+        else:
+            print('Завершено чтение файла')
+
+    def readTXT(self):
+        try:
+            with open(self.filePath,'r') as document:
+                try:
+                    text = document.read()
+                    print('Успешное чтение из файла')
+                    outList = [i for i in text.split()]
+                    print(f'Прочитано: {outList}')
+                    if len(outList):
+                        return outList  # [i for i in text.split()]#self.read_list
+                    else:
+                        print('Файл пуст(нет текстовой информации).')
+                        return False
+                except BaseException as error:
+                    print(f'Возникла ошибка {error} на этапе чтения файла')
+                    # self.error.append(error)
+                    return False
+                else:
+                    print('Завершено чтение файла')
+        except BaseException as error:
+            # Добавиь ошибку в self.error
+            print(f'Возникла ошибка {error} на этапе открытия файла')
+            # self.error.append(error)
+            return False
+        else:
+            pass
+
 
     def getPasswd(self):
         '''
@@ -93,98 +158,211 @@ class Read_XPS:
         :return: выявлен пароль
         '''
         # searching=re.compile(r'[\w\.\,\/]', re.S)
-        if self.read_list:
-            for i in self.read_list[::-1]:
-                if re.search(r"[a-z\[\]\,\.\/\`]{12}", i):
+        if self.readList:
+            for i in self.readList[::-1]:
+                if re.search(r"[a-z\[\]\,\.\/\;\'\\`]{12}", i):
                     self.psw = i
-                    self.show_message(f'Выявлен пароль: {self.psw}')
+                    print(f'Выявлен пароль: {self.psw}')
                     # self.put_to_clip(i)
                     return i
                 else:
                     pass
         else:
-            self.show_message('Не предоставлены входные данные для выделения пароля')
-            self.error.append('password_parce_error')
+            print('Не предоставлены входные данные для выделения пароля')
+            # self.error.append('password_parce_error')
             return False
-
-    def show_message(self, text='', gui=False):
-        '''
-        Функция вывода сообщений
-        :param gui:     передача сообщения в графическую оболочку (gui- объект передачи)
-        :param text:
-        :param error:
-        :return:
-        '''
-        message = text
-        if gui:
-            if gui.statusbar:
-                try:
-                    gui.statusbar.config(text=message)
-                except BaseException as error:
-                    print(f'Ошибка графического интефейса: {error}')
-                else:
-                    pass
-        else:
-            print(message)
 
     def saveAsTxt(self):
         '''сохраняет в txt-вормате
         '''
-        #Если у нас есть файл и нет ошибок
-        if len(self.error)==0:
-            try:
-                #Переименуем
-                txtPath,_ =os.path.splitext(self.filePath)
-                txtPath=txtPath+'.txt'
-                with open(txtPath,'w') as txt:
-                    self.show_message('Открыли запись в txt')
-                    txt.write(' '.join(self.read_list))
+        # Если у нас есть файл и нет ошибок
+        # if len(self.error) == 0:
+        print(f'Начало записи txt из {self.filePath}')
+        try:
+            # Переименуем
+            txtPath = self.filePath#Path(self.filePath).name
+            txtPath=Path(txtPath).with_suffix('.txt')
+            print(f'Новый путь: {txtPath}')
+            if os.path.isfile(txtPath):
+                print('ВНИМАНИЕ! ФАЙЛ СУЩЕСТВУЕТ! ФАЙЛ БУДЕТ ПЕРЕЗАПИСАН!')
+            if self.filePath:
+                with open(txtPath, 'w') as txt:
+                    print(f'Открыли запись в txt {txtPath}')
+                    # strWrite=" ".join(self.read_list)
+                    # print(f'ДЛЯ ЗАПИСИ: {strWrite}')
+                    txt.write(' '.join(self.readList))
+                    print(f'Запись в txt {txtPath} завершена.')
                     return txtPath
-            except BaseException as e:
-                self.show_message(f'{e}')
-                self.error.append('wrong_write_txt')
-                return False
             else:
-                self.error.append('errors_write_txt')
+                print('Нет данных для записи, файл не будет записан.')
                 return False
+        except BaseException as e:
+            print(f'Ошибка записи txt:\n\t{e}')
+            # self.error.append('wrong_write_txt')
+            return False
+        else:
+            # self.error.append('errors_write_txt')
+            # return False
+            pass
 
-    def readTxt(self):
+
+class Mass_ReaderXPS:
+    '''
+    Класс для поточного чтения в указанной папке
+    '''
+    def __init__(self,dirname='',fulldada=False):
         '''
-        Почитаем из txt
+        :param dirname: Путь к обрабатываемому каталогу
+        :param fulldada: Есть ли необходимость получать словарь данных
+                            без него нельзя будет записать txt
+        '''
+        self.dirName=self.checkDir(dirname)
+        self.fileList=self.getXpsFileList()
+        if fulldada:
+            self.dataDict=self.dataXPSdict()
+        else:
+            self.dataDict=False
+
+    def checkDir(self,dirname):
+        '''
+        Проверка дирректории
+        Возврат абсолютного имени
+        '''
+        if os.path.isdir(dirname):
+            print(f'Каталог {dirname} существует')
+            return os.path.abspath(dirname)
+        else:
+            print(f'Каталог {dirname} по указанному пути не существует.\n\tПроверьте путь.')
+            # self.error.append('file_not_exists')
+            return False
+
+    def getXpsFileList(self):
+        '''
+        Получим список xps файлов в каталоге
+        '''
+        out=[]
+        if self.dirName:
+            print('Получим список файлов с расширением xps.')
+            filelist=os.listdir(self.dirName)
+            for i in filelist:
+                if Path(i).suffix==XPS:
+                    # print(os.path.abspath(i))
+                    out.append(os.path.abspath(i))
+            if len(out):
+                print('Файлы xps обнаружены')
+                return out
+            else:
+                print('Файлы xps не обнаружены')
+                return False
+        else:
+            print(f'Не могу получить список файлов.\n\tСостояние каталога: {self.dirName}')
+            return False
+
+    def dataXPSdict(self):
+        '''
+        Получим словарь прочтённых данных
         :return:
         '''
-        #не кинуло ли нам, что файл не существует
-        if 'file_not_exists' in self.error:
-            #нет тела - нет дела
-            self.error.append('txt_not_exists')
-            return False
-            # pass
-        elif os.path.splitext(self.filePath)[-1]=='.txt':
-            #если txt - выделим строку и вернём пароль
-            self.show_message('Хотябы расширение норм')
-            try:
-                with open(self.filePath,'r') as txt:
-                    self.read_list=txt.readline().split()
-            except BaseException as e:
-                self.show_message(f'{e}')
-            else:
-                pass
+        out={}
+        print('Построение словоря прочтённых данных')
+        if self.fileList:
+            for i in self.fileList:
+                out.update({Path(i).name:[i,ReaderXPS(i).readXPSFirstPage(),ReaderXPS(i).getPasswd()]})
+            # print(out)
+            return out
         else:
-            #что может быть хуже?
-            pass
-    def __str__(self):
-        return str(' '.join(self.read_list))
+            print(f'Не могу получить список файлов.\n\tСостояние каталога: {self.dirName}\n\tСостояние списка: {self.fileList}')
+            return False
+
+    def printFileList(self):#,filelist=[]):
+        '''
+        Печать списка файлов
+        :return:
+        '''
+        if self.dirName:
+            if self.fileList:
+                for i in self.fileList:
+                    print(i)
+
+    def printDataList(self,showfull=False):
+        '''
+        Печать словаря данных (только пароль или  целиком)
+        :param showfull:
+        :return:
+        '''
+        if self.dataDict:
+            for name, data in self.dataDict.items():
+                if showfull:
+                    print(f'{name}\tПароль: {data[2]}\n\t{data[1]}')
+                else:
+                    print(f'{name}\tПароль: {data[2]}')
+            return True
+        else:
+            print('Нет словаря данных для вывода.')
+            return False
+
+    def writeDirToTXT(self):
+        '''
+        Запись полученного списка в txt
+        :return:
+        '''
+        if self.fileList:
+            try:
+                for i in self.fileList:
+                    ReaderXPS(i).saveAsTxt()
+            except BaseException as error:
+                print(f'При записи каталога возникла ошибка:\n\t{error}')
+                return False
+            print('Запись каталога завершена.')
+            return True
+        else:
+            print(f'Не могу получить список файлов.\n\tСостояние каталога: {self.dirName}\n\tСостояние списка: {self.fileList}')
+            return False
 
 
 if __name__ == '__main__':
     print(__doc__)
-    print('\n ОРГАНИЗОВАТЬ РАБОТУ С ФАЙЛАМИ TXT!!!')
-    doctest = Read_XPS('xps.xps')
-    #doctest = Read_XPS('/home/roma/Desktop/xps/xps_astra03.py')
-    print(doctest.readFirstPage())
+    # print('\n ОРГАНИЗОВАТЬ РАБОТУ С ФАЙЛАМИ TXT!!!')
+    # doctest = ReaderXPS('2586 Linux.xps')
+    # doctest = ReaderXPS('2586 Linux2.xps')
+    # doctest = ReaderXPS('2586 Linux2_Empty.xps')
+    # doctest = ReaderXPS('/home/roma/Desktop/xps/xps_astra03.py')
+    # doctest = ReaderXPS('2586 test 1.xps')
+    # doctest = ReaderXPS('/home/user/Desktop/xps3_project/test_2.xps')
+    # doctest = ReaderXPS('test3.xps')
+    # doctest = ReaderXPS('test  4.xps')
+    # doctest = ReaderXPS('test5.xps')
+    # doctest = ReaderXPS('test6.xps')
+    # doctest = ReaderXPS('test7.xps')
+    # doctest = ReaderXPS('test8.xps')
+    # # doctest = ReaderXPS('test9.xps')
+    # doctest = ReaderXPS('/home/user/Desktop/xps3_project/test10.xps')
+    # doctest.getPasswd()
+    # # doctest.saveAsTxt()
+    # txtTest=Read_XPS('xps.txt')
+    # txtTest.readTxt()
+    # txtTest.getPasswd()
+    # Проверить создание объекта, просто подсунуть ему парольную фразу + Всё и получить пароль
+
+
+    # massDocTest=Mass_ReaderXPS('/home/user/Desktop/xps3_project',fulldada=True)
+    # # massDocTest = Mass_ReaderXPS('/home/user/Desktop/xps3_projecd',fulldada=True)
+    # # massDocTest = Mass_ReaderXPS('/home/user/Desktop/xps3_project/build',fulldada=True)
+    # # massDocTest.printDataList(showfull=True)#dataXPSdict()
+    # massDocTest.printDataList()
+    # massDocTest.writeDirToTXT()
+
+    # doctest = ReaderXPS('2586 Linux.txt')
+    # doctest = ReaderXPS('2586 Linux2_Empty.txt')
+    # doctest = ReaderXPS('/home/roma/Desktop/xps/xps_astra03.py')
+    # doctest = ReaderXPS('/home/user/Desktop/xps3_project/2586 test 1.xps')
+    doctest = ReaderXPS('test_2.txt')
+    # doctest = Read_XPS('test3.xps')
+    # doctest = Read_XPS('test  4.xps')
+    # doctest = Read_XPS('test5.xps')
+    # doctest = Read_XPS('test6.xps')
+    # doctest = Read_XPS('test7.xps')
+    # doctest = Read_XPS('test8.xps')
+    # # doctest = Read_XPS('test9.xps')
+    # doctest = ReaderXPS('/home/user/Desktop/xps3_project/test10.xps')
     doctest.getPasswd()
-    #doctest.saveAsTxt()
-    txtTest=Read_XPS('xps.txt')
-    txtTest.readTxt()
-    txtTest.getPasswd()
-    #Проверить создание объекта, просто подсунуть ему парольную фразу + Всё и получить пароль
