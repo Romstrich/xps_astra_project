@@ -6,7 +6,10 @@
         Модуль работы с ViPNet
         - Определяет установленный клиент
         - Определяет установленный ключ (!системный!)
+        - Операции с ключём (системным)
+        - Операции с випнет-клиентом
 
+        Мотрич Р.Д. ascent.mrd@yandex.ru 2025 г.
     ---------------------------------------------------------------------
 '''
 
@@ -17,13 +20,18 @@ from pathlib import Path
 from module_permissions import My_Permissions
 
 VERSION = '0.1'
+HELP = __doc__
 
 
 class My_ViPNet():
     '''
-    installed   установле ли випнет
-    priveliges  возможность пользоваться su
-    sysKeyInfo  информация об установленном ключе
+    Класс работы с випнет
+    Атрибуты
+        installed   установле ли випнет
+        priveliges  возможность пользоваться su
+        sysKeyInfo  информация об установленном ключе
+    Методы:
+
     '''
 
     def __init__(self):
@@ -145,45 +153,6 @@ class My_ViPNet():
         else:
             pass
 
-        # for i in ViPNetInfo2:
-        #     print(str(i))
-
-    # def checkPrivileges(self):
-    #     '''
-    #         Функция, которая проверяет su
-    #             !!!ACHTUNG!!!
-    #             Не даст нашего пользователя если мы были запущены
-    #                 ->sudo bash
-    #                 ->sudo <exe_name>
-    #             будет пара (root,root)
-    #         :return: (root,имя пользователя) - привилегии
-    #                  (имя пользователя)      - привилегий нет.
-    #         '''
-    #     # узнаем от чьего имени
-    #     print(os.get_exec_path())
-    #     try:
-    #         user = os.environ['USER']
-    #     except KeyError:
-    #         print('Что-то не так с пользователем')
-    #     # print(os.getuid())
-    #     if user == 'root':
-    #         print('Выполняемся с привилегиями')
-    #         try:
-    #             su = os.environ['SUDO_USER']
-    #         except KeyError:
-    #             # sudo не выполнялось - мы root
-    #             print('Выполнение в среде root')
-    #             return (user, user)
-    #         else:
-    #             # sudo выполнялось - мы не root
-    #             print('Выполнение в среде c повышением привилегий')
-    #             return (user, su)
-    #
-    #     else:
-    #         print('Привилегий при выполнении нет')
-    #         return (user,)
-    #     # print(os.environ['SUDO_USER'])
-
     def ViPNetInfo(self):
         pass
 
@@ -205,43 +174,52 @@ class My_ViPNet():
             pass
 
     def ViPNetStart(self):
+        '''
+        Запуск клиента
+        :return:
+        '''
         pass
 
     def ViPNetStop(self):
+        '''
+        Останов клиента
+        :return:
+        '''
         pass
 
     def ViPNetGUI(self):
         pass
 
-    def show_message(self, text='', gui=False):
-        '''
-        Функция вывода сообщений
-        :param gui:     передача сообщения в графическую оболочку (gui- объект передачи)
-        :param text:
-        :param error:
-        :return:
-        '''
-        message = text
-        if gui:
-            if gui.statusbar:
-                try:
-                    gui.statusbar.config(text=message)
-                except BaseException as error:
-                    print(f'Ошибка графического интефейса: {error}')
-                else:
-                    pass
-        else:
-            print(message)
+    # def show_message(self, text='', gui=False):
+    #     '''
+    #     Функция вывода сообщений
+    #     :param gui:     передача сообщения в графическую оболочку (gui- объект передачи)
+    #     :param text:
+    #     :param error:
+    #     :return:
+    #     '''
+    #     message = text
+    #     if gui:
+    #         if gui.statusbar:
+    #             try:
+    #                 gui.statusbar.config(text=message)
+    #             except BaseException as error:
+    #                 print(f'Ошибка графического интефейса: {error}')
+    #             else:
+    #                 pass
+    #     else:
+    #         print(message)
 
 
 if __name__ == '__main__':
-    print('Тестовая работа с классом MyViPNet')
+    print(f'Тестовая работа с классом MyViPNet.\nVersion: {VERSION}')
     print(__doc__)
     vpn = My_ViPNet()
-    vpn.privileges.permissionRezume()
-    print(f'Результат проверки установленной версии ViPNet: {vpn.installed}')
     # vpn.privileges.permissionRezume()
-    # vpn.deleteKey()
-    # vpn.checkPrivileges()
+    print(f'Результат проверки установленной версии ViPNet: {vpn.installed}')
+    if vpn.sysKeyInfo:
+        for key, value in vpn.sysKeyInfo.items():
+            print(f'-----{key}\t\t\t{value}')
+    # vpn.privileges.permissionRezume()
 else:
-    print('module_vipnet was loading like module')
+    print(f'module_vipnet was loading like module.\nVersion: {VERSION}')

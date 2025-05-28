@@ -172,3 +172,5 @@ xdg-mime query default text/html
 -----KEYSTATUS                  True
 -----USER                       ['root']
 -----AUTOSTART                  True
+
+vipnetclient installkeys Desktop/xps3_project/forALSEsudis/*.dst --psw rdfveiecn,ek

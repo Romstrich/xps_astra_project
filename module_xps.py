@@ -5,20 +5,39 @@
 
         Модуль работы с одностраничными xps и txt файлами, содержащими
     информацию для випнет.
-        -
+        - выделяет пароль из известного типа (может не универсален)
+        - сохраняет xps в txt (только первая страница)
+        - обработка дирректории с фалами-паролями
+
+        Мотрич Р.Д. ascent.mrd@yandex.ru 2025 г.
     ---------------------------------------------------------------------
 '''
-
-XPS = '.xps'
-TXT = '.txt'
 
 import fitz, re, os.path
 from pathlib import Path
 
+XPS = '.xps'
+TXT = '.txt'
+VERSION = '0.4'
+HELP = __doc__
+
 
 class ReaderXPS:
     '''
-    Класс чтения xps - файла
+    Класс работы с файлами-паролями
+    Атрибуты:
+        filePath
+        fileSufx
+        readList
+        psw
+    Методы:
+        __init__
+        checkFile
+        readFile
+        readXPSFirstPage
+        readTXT
+        getPasswd
+        saveAsTxt
     '''
 
     def __init__(self, file_name=False):
@@ -32,7 +51,7 @@ class ReaderXPS:
             if self.filePath:
                 self.fileSufx = Path(self.filePath).suffix
             else:
-                self.fileSufx=False
+                self.fileSufx = False
         else:
             self.filePath = False
             self.fileSufx = False
@@ -108,10 +127,10 @@ class ReaderXPS:
             text = page.get_text()
             print('Успешное чтение из файла')
             # self.read_list = [i for i in text.split()]
-            outList=[i for i in text.split()]
+            outList = [i for i in text.split()]
             print(f'Прочитано: {outList}')
             if len(outList):
-                return outList#[i for i in text.split()]#self.read_list
+                return outList  # [i for i in text.split()]#self.read_list
             else:
                 print('Файл пуст(нет текстовой информации).')
                 return False
@@ -124,12 +143,13 @@ class ReaderXPS:
 
     def readTXT(self):
         try:
-            with open(self.filePath,'r') as document:
+            with open(self.filePath, 'r') as document:
                 try:
                     text = document.read()
                     print('Успешное чтение из файла')
                     outList = [i for i in text.split()]
-                    print(f'Прочитано: {outList}')
+                    if __name__=='__main__':
+                        print(f'Прочитано: {outList}')
                     if len(outList):
                         return outList  # [i for i in text.split()]#self.read_list
                     else:
@@ -149,7 +169,6 @@ class ReaderXPS:
         else:
             pass
 
-
     def getPasswd(self):
         '''
         Возращает пароль
@@ -158,11 +177,14 @@ class ReaderXPS:
         :return: выявлен пароль
         '''
         # searching=re.compile(r'[\w\.\,\/]', re.S)
+        if __name__=='__main__':
+            print(f'СОДЕРЖИМОЕ:\n\t{" ".join(self.readList)}')
         if self.readList:
             for i in self.readList[::-1]:
                 if re.search(r"[a-z\[\]\,\.\/\;\'\\`]{12}", i):
                     self.psw = i
-                    print(f'Выявлен пароль: {self.psw}')
+                    if __name__=='__main__':
+                        print(f'Выявлен пароль:\n\t{self.psw}')
                     # self.put_to_clip(i)
                     return i
                 else:
@@ -180,8 +202,8 @@ class ReaderXPS:
         print(f'Начало записи txt из {self.filePath}')
         try:
             # Переименуем
-            txtPath = self.filePath#Path(self.filePath).name
-            txtPath=Path(txtPath).with_suffix('.txt')
+            txtPath = self.filePath  # Path(self.filePath).name
+            txtPath = Path(txtPath).with_suffix('.txt')
             print(f'Новый путь: {txtPath}')
             if os.path.isfile(txtPath):
                 print('ВНИМАНИЕ! ФАЙЛ СУЩЕСТВУЕТ! ФАЙЛ БУДЕТ ПЕРЕЗАПИСАН!')
@@ -209,21 +231,35 @@ class ReaderXPS:
 class Mass_ReaderXPS:
     '''
     Класс для поточного чтения в указанной папке
+    Переменные:
+        dirName
+        fileList
+        dataDict
+    Методы:
+        __init__
+        checkDir
+        getXpsFileList
+        dataXPSdict
+        printFileLis
+        printDataList
+        writeDirToTXT
     '''
-    def __init__(self,dirname='',fulldada=False):
+
+    def __init__(self, dirname='', fulldada=False):
         '''
         :param dirname: Путь к обрабатываемому каталогу
         :param fulldada: Есть ли необходимость получать словарь данных
                             без него нельзя будет записать txt
         '''
-        self.dirName=self.checkDir(dirname)
-        self.fileList=self.getXpsFileList()
+        self.dirName = self.checkDir(dirname)
+        #print(self.dirName)
+        self.fileList = self.getXpsFileList()
         if fulldada:
-            self.dataDict=self.dataXPSdict()
+            self.dataDict = self.dataXPSdict()
         else:
-            self.dataDict=False
+            self.dataDict = False
 
-    def checkDir(self,dirname):
+    def checkDir(self, dirname):
         '''
         Проверка дирректории
         Возврат абсолютного имени
@@ -240,14 +276,15 @@ class Mass_ReaderXPS:
         '''
         Получим список xps файлов в каталоге
         '''
-        out=[]
+        out = []
         if self.dirName:
-            print('Получим список файлов с расширением xps.')
-            filelist=os.listdir(self.dirName)
+            print(f'Получим список файлов с расширением xps.\t{self.dirName}')
+            filelist = os.listdir(self.dirName)
+            # print(filelist)
             for i in filelist:
-                if Path(i).suffix==XPS:
-                    # print(os.path.abspath(i))
-                    out.append(os.path.abspath(i))
+                if Path(i).suffix == XPS:
+                    # print(os.path.join(self.dirName,i))
+                    out.append(os.path.join(self.dirName,i))
             if len(out):
                 print('Файлы xps обнаружены')
                 return out
@@ -263,18 +300,19 @@ class Mass_ReaderXPS:
         Получим словарь прочтённых данных
         :return:
         '''
-        out={}
+        out = {}
         print('Построение словоря прочтённых данных')
         if self.fileList:
             for i in self.fileList:
-                out.update({Path(i).name:[i,ReaderXPS(i).readXPSFirstPage(),ReaderXPS(i).getPasswd()]})
+                out.update({Path(i).name: [i, ReaderXPS(i).readXPSFirstPage(), ReaderXPS(i).getPasswd()]})
             # print(out)
             return out
         else:
-            print(f'Не могу получить список файлов.\n\tСостояние каталога: {self.dirName}\n\tСостояние списка: {self.fileList}')
+            print(
+                f'Не могу получить список файлов.\n\tСостояние каталога: {self.dirName}\n\tСостояние списка: {self.fileList}')
             return False
 
-    def printFileList(self):#,filelist=[]):
+    def printFileList(self):  # ,filelist=[]):
         '''
         Печать списка файлов
         :return:
@@ -284,7 +322,7 @@ class Mass_ReaderXPS:
                 for i in self.fileList:
                     print(i)
 
-    def printDataList(self,showfull=False):
+    def printDataList(self, showfull=False):
         '''
         Печать словаря данных (только пароль или  целиком)
         :param showfull:
@@ -316,11 +354,13 @@ class Mass_ReaderXPS:
             print('Запись каталога завершена.')
             return True
         else:
-            print(f'Не могу получить список файлов.\n\tСостояние каталога: {self.dirName}\n\tСостояние списка: {self.fileList}')
+            print(
+                f'Не могу получить список файлов.\n\tСостояние каталога: {self.dirName}\n\tСостояние списка: {self.fileList}')
             return False
 
 
 if __name__ == '__main__':
+    print(f'module_xps was loading like program.\nVersion: {VERSION}')
     print(__doc__)
     # print('\n ОРГАНИЗОВАТЬ РАБОТУ С ФАЙЛАМИ TXT!!!')
     # doctest = ReaderXPS('2586 Linux.xps')
@@ -344,11 +384,11 @@ if __name__ == '__main__':
     # txtTest.getPasswd()
     # Проверить создание объекта, просто подсунуть ему парольную фразу + Всё и получить пароль
 
-
     # massDocTest=Mass_ReaderXPS('/home/user/Desktop/xps3_project',fulldada=True)
     # # massDocTest = Mass_ReaderXPS('/home/user/Desktop/xps3_projecd',fulldada=True)
     # # massDocTest = Mass_ReaderXPS('/home/user/Desktop/xps3_project/build',fulldada=True)
     # # massDocTest.printDataList(showfull=True)#dataXPSdict()
+
     # massDocTest.printDataList()
     # massDocTest.writeDirToTXT()
 
@@ -356,7 +396,7 @@ if __name__ == '__main__':
     # doctest = ReaderXPS('2586 Linux2_Empty.txt')
     # doctest = ReaderXPS('/home/roma/Desktop/xps/xps_astra03.py')
     # doctest = ReaderXPS('/home/user/Desktop/xps3_project/2586 test 1.xps')
-    doctest = ReaderXPS('test_2.txt')
+    #doctest = ReaderXPS('test_2.txt')
     # doctest = Read_XPS('test3.xps')
     # doctest = Read_XPS('test  4.xps')
     # doctest = Read_XPS('test5.xps')
@@ -365,4 +405,6 @@ if __name__ == '__main__':
     # doctest = Read_XPS('test8.xps')
     # # doctest = Read_XPS('test9.xps')
     # doctest = ReaderXPS('/home/user/Desktop/xps3_project/test10.xps')
-    doctest.getPasswd()
+    #doctest.getPasswd()
+else:
+    print(f'module_xps was loading like module.\nVersion: {VERSION}')

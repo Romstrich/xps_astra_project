@@ -7,7 +7,7 @@
     столе, вывод содержимого первой страницы, выявление и прередача
     пароля в буфер обмена.
         Ключи:
-            -i  Установка ключа с рабочего стола
+            *-i  Установка ключа с рабочего стола
             -p  Выводит паспортную информацию о системе
             -t  Сохраняет xps с рабочего стола в txt
             *-d  Сохраняет все xps из указанного каталога в txt
@@ -18,13 +18,18 @@
         Мотрич Р.Д. ascent.mrd@yandex.ru 2025 г.
     ---------------------------------------------------------------------
 '''
+from module_permissions import My_Permissions
+from module_xps import ReaderXPS, Mass_ReaderXPS
 
-HELP=__doc__
+VERSION = '0.4'
+HELP = __doc__
+
 
 class CLI_class:
     '''Класс работы CLI'''
+
     def __init__(self):
-        pass
+        self.permissions=My_Permissions()
 
     def argReseption(self):
         '''
@@ -44,8 +49,12 @@ class CLI_class:
             print('Install')
         elif '-t' in argv:
             print('Save txt')
+            self.saveTxt()
+        elif '-d' in argv:
+            print('Save txt directory')
         else:
             print('Only xps read')
+            self.passwordXps()
 
     def help(self):
         '''Вывод справки'''
@@ -57,7 +66,6 @@ class CLI_class:
             return False
         else:
             return True
-
 
     def pasport(self):
         '''Вывод паспорта'''
@@ -73,23 +81,57 @@ class CLI_class:
             return True
 
     def installKey(self):
-        print('Pa_start.')
+        print('Install_key_start.')
         pass
 
     def saveTxt(self):
-        print('Pasport_start.')
-        pass
+        print('Save_txt_start.')
+        print(self.permissions.userDesktop.split()[0])
+        dirInfo = Mass_ReaderXPS(dirname=self.permissions.userDesktop.split()[0])  # ,fulldada=True)
+        # dirInfo.printDataList(showfull=True)
+        if dirInfo.dirName:
+            if dirInfo.fileList:
+                doc = ReaderXPS(dirInfo.fileList[0])
+                # print(f'\tСОДЕРЖИМОЕ:\n{" ".join(doc.readList)}')
+                # print(f'\tПАРОЛЬ:\n{doc.getPasswd()}')
+                doc.saveAsTxt()
+                return True
+            else:
+                print('Ошибка поиска файлов.')
+                return False
+        else:
+            print(f'Ошибка работы с каталогом.')
+            return False
+
+    def saveTxtDir(self):
+        from sys import argv
+        print('Save txt dir start')
 
     def passwordXps(self):
-        print('Pasport_start.')
-        pass
+        print('Password_start.')
+        print(self.permissions.userDesktop.split()[0])
+        dirInfo=Mass_ReaderXPS(dirname=self.permissions.userDesktop.split()[0])#,fulldada=True)
+        # dirInfo.printDataList(showfull=True)
+        if dirInfo.dirName:
+            if dirInfo.fileList:
+                doc=ReaderXPS(dirInfo.fileList[0])
+                print(f'\tСОДЕРЖИМОЕ:\n{" ".join(doc.readList)}')
+                print(f'\tПАРОЛЬ:\n{doc.getPasswd()}')
+                return True
+            else:
+                print('Ошибка поиска файлов.')
+                return False
+        else:
+            print(f'Ошибка работы с каталогом.')
+            return False
+
 
 
 if __name__ == '__main__':
-    print('CLI_module was loading like program')
-    run=CLI_class()
+    print(f'CLI_module was loading like program.\nVersion: {VERSION}')
+    run = CLI_class()
     run.argReseption()
 
     # Проверим аргументы
 else:
-    print('CLI_module was loading like module')
+    print(f'CLI_module was loading like module.\nVersion: {VERSION}')

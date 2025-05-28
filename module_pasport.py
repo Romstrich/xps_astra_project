@@ -1,7 +1,8 @@
 '''
     ==============================Модуль данных об АРМ====================
     ---------------------------------------------------------------------
-                                    Версия 0.3 для xps_astra
+    Версия 0.3 для xps_astra 0.4
+
                             В данном модуле получаем сведения
         1. Серийные номера и модели носителей
         2. MAC-адреса сетевых интерфейсов
@@ -11,6 +12,8 @@
         6. Информация о системе Astra linux
         7. Информация о пакетах SUDIS
         8. Информация об установленном системном ключе ViPNet
+
+        Мотрич Р.Д. ascent.mrd@yandex.ru 2025 г.
     ---------------------------------------------------------------------
 '''
 import os
@@ -26,6 +29,7 @@ from module_vipnet import My_ViPNet
 from module_permissions import My_Permissions
 
 VERSION = '0.3'
+HELP = __doc__
 SEPORATOR = '-----\n\t'
 # {SEPORATOR}
 SEPOR_SECTION = '     -------------------------------------'
@@ -33,6 +37,53 @@ SEPOR_RUN = '\n     =====================================\n'
 
 
 class My_pasport:
+    '''
+    Класс отработки паспортных данных системы
+    Атрибуты:
+        permissions
+        hostname
+        astra_version
+        astra_update_version
+        astra_build_version
+        ip
+        mac
+        volumes
+        #-interfaces=[] не работает
+        cpro
+        cproLic
+        sudisInfo
+        kesl
+        vipnet
+        vipnetKey
+    Методы:
+        __init__
+        getVolumes
+        printVolumes
+        printViPNet
+        printViPNetKey
+        getMac
+        printMac
+        getIPaddres
+        printIP
+        printHostName
+        getKesl
+        printKesl
+        getCpro
+        getCproLicense
+        printCpro
+        printCproLicense
+        getAstraVersion
+        getAstraUpdate
+        getAstraBuild
+        printAstraVersion
+        printAstraUpdate
+        printAstraBuild
+        getSudisInfo
+        printSudisInfo
+        runCLI
+
+    '''
+
     def __init__(self):
         try:
             priv = My_Permissions()
@@ -52,16 +103,16 @@ class My_pasport:
             self.ip = self.getIPaddres()  # +
             self.mac = self.getMac()  # +
             self.volumes = self.getVolumes()  # +
-            # self.interfaces=[] считаем, что у нас один сетефой интерфейс  #-
+            # self.interfaces=[] считаем, что у нас один сетефой интерфейс  # -
             self.cpro = self.getCpro()  # +
-            self.cproLic = self.getCproLicense()  # +                        self.kesl = self.getKesl()  # +
-            self.sudisInfo = self.getSudisInfo()
-            self.kesl = self.getKesl()
+            self.cproLic = self.getCproLicense()  # +
+            self.sudisInfo = self.getSudisInfo()  # +
+            self.kesl = self.getKesl()  # +
 
             print('Получение информации о ViPNet...')
             vpn = My_ViPNet()
             self.vipnet = vpn.installed  # +
-            self.vipnetKey = vpn.sysKeyInfo
+            self.vipnetKey = vpn.sysKeyInfo  # +
 
         except BaseException as error:
             print(f'{SEPORATOR}Ошибка инициализации:\n\t{error}')
@@ -313,6 +364,7 @@ class My_pasport:
                             out.append(tmpStr)
                             # print(tmpStr)
             # print(out)
+            # ВОЗМОЖНО НАДО БУДЕТ ДОБАВИТЬ, ЕСЛИ СПИСОК НУЛЕВОЙ - ВЕРНУТЬ False
             return out
         except BaseException as error:
             print(f'При определении пакетов СУДИС возникла ошибка: {error}')
@@ -381,4 +433,4 @@ if __name__ == '__main__':
         print(f'Ошибка выполнения:\n\t{error}')
 
 else:
-    print('module_passport was loading like module')
+    print(f'module_passport was loading like module.\nVersion: {VERSION}')

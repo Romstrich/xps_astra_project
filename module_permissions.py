@@ -8,6 +8,10 @@
         - Определяет права sudo
         - Находит рабочий стол пользователя
         - Запрашивает пароль администратора для выполнения команды su
+
+        ПРОВЕРИТЬ РЕШЕНИЕ С ПАРОЛЕМ!!!
+
+        Мотрич Р.Д. ascent.mrd@yandex.ru 2025 г.
     ---------------------------------------------------------------------
 '''
 
@@ -19,7 +23,9 @@ from chardet import detect
 
 from module_messenger import Messenger
 
-VERSION='0.2'
+VERSION = '0.2'
+HELP = __doc__
+
 
 # TEST_SUDO_COMMAND="if sudo -S -p '' echo -n < /dev/null 2> /dev/null ; then echo 'enabled.' ; else echo 'disabled' ; fi"
 class My_Permissions():
@@ -31,15 +37,13 @@ class My_Permissions():
                                                     False - не можем
                                                     password - с паролем)
     '''
+
     def __init__(self):
-        self.user=self.detectUserName() #пользователь сессии
+        self.user = self.detectUserName()  # пользователь сессии
         self.termOwner = self.detectSudoUser()  # пользователь терминала
         self.sudoAccess = self.checkSudoAccess()  # причастность к административным группам
         self.sudoCanRun = self.checkSudoRun()  # Текущее право выполнять команды sudo
         self.userDesktop = self.detectUserDesktop()
-
-
-
 
     def detectUserName(self):
         '''
@@ -47,8 +51,8 @@ class My_Permissions():
         !!!Включить цикл try-except
         return: Имя пользователя сессии
         '''
-        usrDetect=subprocess.run(['logname'],stdout=subprocess.PIPE)
-        user=usrDetect.stdout.decode(detect(usrDetect.stdout)['encoding'])
+        usrDetect = subprocess.run(['logname'], stdout=subprocess.PIPE)
+        user = usrDetect.stdout.decode(detect(usrDetect.stdout)['encoding'])
         return user.strip()
 
     def detectSudoUser(self):
@@ -56,7 +60,7 @@ class My_Permissions():
         Должно возвращать True , если sudo или root или bash
         :return:
         '''
-        sudoDetect = subprocess.run(['whoami'],stdout=subprocess.PIPE)
+        sudoDetect = subprocess.run(['whoami'], stdout=subprocess.PIPE)
         sudoUser = sudoDetect.stdout.decode(detect(sudoDetect.stdout)['encoding'])
         return sudoUser.strip()
 
@@ -64,10 +68,10 @@ class My_Permissions():
         '''Проверка доступа к командам sudo
         Просто узнаём, есть ли пользователь в группе sudo
         '''
-        testCommand='groups'
+        testCommand = 'groups'
         sudoDetect = subprocess.run(testCommand, stdout=subprocess.PIPE)
         result = sudoDetect.stdout.decode(detect(sudoDetect.stdout)['encoding']).split()
-        #если мы root либо в гпуппе sudo то можем получить доступ
+        # если мы root либо в гпуппе sudo то можем получить доступ
         if 'sudo' in result:
             return True
         elif 'root' in result:
@@ -78,9 +82,9 @@ class My_Permissions():
             return True
         else:
             return False
-        #print(result)
+        # print(result)
 
-    def checkSudoRun(self,password=False):
+    def checkSudoRun(self, password=False):
         '''Проверка на выполнение SUDO
         проверочная команда :ls /root
         !!! параметр -А !!!
@@ -91,20 +95,22 @@ class My_Permissions():
         '''
 
         if password:
-            print('Проверка пароля ')#,password)
-            sudoTest = subprocess.run(['sudo', '-S', 'ls', '/root'], input=password.encode(),stdout=subprocess.PIPE)#, stdout=subprocess.PIPE)
-            #sudoTest = subprocess.run(['sudo', '-S','<<<', str(password),'ls', '/root'], stdin=subprocess.PIPE,stdout=subprocess.PIPE)#, stdout=subprocess.PIPE)
+            print('Проверка пароля ')  # ,password)
+            sudoTest = subprocess.run(['sudo', '-S', 'ls', '/root'], input=password.encode(),
+                                      stdout=subprocess.PIPE)  # , stdout=subprocess.PIPE)
+            # sudoTest = subprocess.run(['sudo', '-S','<<<', str(password),'ls', '/root'], stdin=subprocess.PIPE,stdout=subprocess.PIPE)#, stdout=subprocess.PIPE)
         else:
             # if self.termOwner == 'root':
             if self.sudoAccess:
                 print('permissions проверка при инициализации')
-                sudoTest = subprocess.run(['sudo','-A','ls','/root'], stdout=subprocess.PIPE)
-            #elif not self.sudoAccess:
+                sudoTest = subprocess.run(['sudo', '-A', 'ls', '/root'], stdout=subprocess.PIPE)
+            # elif not self.sudoAccess:
             else:
                 print('Внимание! Пользователь не состоит в группах администрирования!')
                 return False
         try:
-            sudoResult = sudoTest.stdout.decode(detect(sudoTest.stdout)['encoding'])#Разобраться со случаем, где ошибка!!!!
+            sudoResult = sudoTest.stdout.decode(
+                detect(sudoTest.stdout)['encoding'])  # Разобраться со случаем, где ошибка!!!!
         except BaseException as error:
             print('Команду от sudo мы не выполним')
             if password:
@@ -114,7 +120,7 @@ class My_Permissions():
             print('------------------Всё ОК - ПОЕХАЛИ!------------------')
             if password:
                 print('--------------------Пароль принят--------------------')
-                self.sudoCanRun='password'
+                self.sudoCanRun = 'password'
             return True
 
     def getSudoAccess(self, passwd=False):
@@ -127,9 +133,9 @@ class My_Permissions():
         :return:
         '''
         if passwd:
-            psw=passwd
+            psw = passwd
         else:
-            psw=pwinput('Введите пароль администратора: \n')
+            psw = pwinput('Введите пароль администратора: \n')
         if self.checkSudoRun(psw):
             print('пароль принят')
             return psw
@@ -137,16 +143,15 @@ class My_Permissions():
             print('пароль не принят')
             return False
 
-
-    def runSudoCommand(self,command, password = False):
+    def runSudoCommand(self, command, password=False):
         '''
         выполнить команду с sudo правами.
         :param command:
         :return:
         '''
-        #сначала проверим, есть ли у нас прямая возможность выполнить,
-        #затем, если её нет, можно ли получить доступ
-        #тогда либо отказываем, либо запрашиваем пароль
+        # сначала проверим, есть ли у нас прямая возможность выполнить,
+        # затем, если её нет, можно ли получить доступ
+        # тогда либо отказываем, либо запрашиваем пароль
         # if self.permission:
         #     print('Вполним команду SUDO')
         # elif self.sudoAccess:
@@ -155,15 +160,14 @@ class My_Permissions():
         #     print('КОМАНДА НЕ ВЫПОЛНЕНА - РАЗБИРАЙСЯ')
         shString = []
 
-
         if self.sudoCanRun == True:
-            shString=['sudo']
+            shString = ['sudo']
         else:
-            #Вводим пароль и проверяем
-            password=self.getSudoAccess(password)
+            # Вводим пароль и проверяем
+            password = self.getSudoAccess(password)
             if password:
                 print(f'Выполняю команду {command}')
-                shString=['sudo']
+                shString = ['sudo']
             else:
                 print('Команда выполнена не будет: не верный пароль')
                 return False
@@ -174,9 +178,9 @@ class My_Permissions():
 
         try:
             print('Запуск команды')
-            #shTest = subprocess.run(shString, capture_output=True, text=True)#, shell=True)# ,stdout=subprocess.PIPE)#capture_output=True,
-            os.system('sudo '+command) #тестовый вариант)
-            #вариант команды:vipnetclient stop; sudo yes | sudo vipnetclient deletekeys - работает удовлетворительно
+            # shTest = subprocess.run(shString, capture_output=True, text=True)#, shell=True)# ,stdout=subprocess.PIPE)#capture_output=True,
+            os.system('sudo ' + command)  # тестовый вариант)
+            # вариант команды:vipnetclient stop; sudo yes | sudo vipnetclient deletekeys - работает удовлетворительно
 
         except BaseException as error:
             print(f'Возникла ошибка {error}')
@@ -184,7 +188,7 @@ class My_Permissions():
         else:
             print('Проверь выполнение команды')
             # Возвращаем
-            #return shTest.stdout.decode(detect(shTest.stdout)['encoding'])
+            # return shTest.stdout.decode(detect(shTest.stdout)['encoding'])
 
     def detectUserDesktop(self):
         '''Определяем рабочий стол'''
@@ -198,16 +202,15 @@ class My_Permissions():
                 pass
         else:
             try:
-                com='su '+self.user+' -c "systemd-path user-desktop"'
-                #print(com)
+                com = 'su ' + self.user + ' -c "systemd-path user-desktop"'
+                # print(com)
+                #print(os.popen(com).read().split('/'))
                 return os.path.abspath(os.popen(com).read())
             except BaseException as error:
                 print(f'Ошибка функции определения рабочего стола:\n\t{error}')
                 return False
             else:
                 pass
-
-
 
     def permissionRezume(self):
         print(f'USER_NAME: {self.user}')
@@ -219,15 +222,15 @@ class My_Permissions():
 
 if __name__ == '__main__':
     print(__doc__)
-    my_perm=My_Permissions()
+    my_perm = My_Permissions()
     my_perm.permissionRezume()
     # print(my_perm.detectUserDesktop())
     # my_perm.checkSudoRun('1')
     # my_perm.permissionRezume()
     # if my_perm.sudoCanRun:
-    com=input('Введите команду для выполнения в режиме su\n')
+    com = input('Введите команду для выполнения в режиме su\n')
     my_perm.runSudoCommand(com)
-    #my_perm.runSudoCommand('ls \\n| grep .py')
-        # my_perm.checkSudoRun('1')
+    # my_perm.runSudoCommand('ls \\n| grep .py')
+    # my_perm.checkSudoRun('1')
 else:
-    print('module_permissions was loading like module')
+    print(f'module_permissions was loading like module.\nVersion: {VERSION}')
