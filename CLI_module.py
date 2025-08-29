@@ -1,7 +1,7 @@
 '''
     ==============================Модуль режима терминала================
     ---------------------------------------------------------------------
-    Версия 0.4.1 для xps_astra 0.4
+    Версия 0.4.a для xps_astra 0.4
 
         Модуль работает без ключей - режим поиска файла xps на рабочем
     столе, вывод содержимого первой страницы, выявление и
@@ -33,7 +33,7 @@ from module_permissions import My_Permissions
 from module_xps import ReaderXPS, Mass_ReaderXPS
 from module_vipnet import My_ViPNet
 
-VERSION = '0.4'
+VERSION = '0.4.a'
 HELP = __doc__
 
 
@@ -263,7 +263,7 @@ if __name__ == '__main__':
     run.argReseption()
     print('Выход...')
     time.sleep(5)
-
+    input("press Enter to exit")
     # Проверим аргументы
 else:
     print(f'CLI_module was loading like module.\nVersion: {VERSION}')
