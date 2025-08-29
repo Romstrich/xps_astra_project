@@ -6,4 +6,5 @@
 *.dst
 /MODULES_OLD
 /Выпавшее
+/__pycache__
 

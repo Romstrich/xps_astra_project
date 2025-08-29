@@ -4,7 +4,7 @@
     Версия 0.3 для xps_astra 0.4
 
                             В данном модуле получаем сведения
-        1. Серийные номера и модели носителей
+        1. Серийные номера и модели носителей*
         2. MAC-адреса сетевых интерфейсов
         3. Версия ViPNet
         4. Версия KESL
@@ -12,6 +12,8 @@
         6. Информация о системе Astra linux
         7. Информация о пакетах SUDIS
         8. Информация об установленном системном ключе ViPNet
+
+    *Возможно попадпние SD-карт в список несъёмных носителей
 
         Мотрич Р.Д. ascent.mrd@yandex.ru 2025 г.
     ---------------------------------------------------------------------
@@ -226,7 +228,7 @@ class My_pasport:
         if self.hostname:
             print(f'{SEPORATOR}Сетевое имя:\n\t{self.hostname}')
         else:
-            print(f'{SEPORATOR}Сетевое имя не определёно.')
+            print(f'{SEPORATOR}Сетевое имя не определено.')
 
     def getKesl(self):
         try:
@@ -244,7 +246,7 @@ class My_pasport:
         if self.kesl:
             print(f'{SEPORATOR}Версия Касперский для Linux:\n\t{self.kesl}')
         else:
-            print(f'{SEPORATOR}Версия Касперский для Linux не определёна.')
+            print(f'{SEPORATOR}Версия Касперский для Linux не определена.')
 
     def getCpro(self):
         try:
@@ -282,7 +284,7 @@ class My_pasport:
         if self.cpro:
             print(f'{SEPORATOR}Версия КриптоПро для Linux:\n\t{self.cpro}')
         else:
-            print(f'{SEPORATOR}Версия КриптоПро для Linux не определёна.')
+            print(f'{SEPORATOR}Версия КриптоПро для Linux не определена.')
 
     def printCproLicense(self):
         if self.cproLic:
@@ -291,7 +293,7 @@ class My_pasport:
             for i in self.cproLic.split('\n'):
                 print(f'\t{i}')
         else:
-            print(f'{SEPORATOR}Лицензия КриптоПро для Linux не определёна.')
+            print(f'{SEPORATOR}Лицензия КриптоПро для Linux не определена.')
 
     def getAstraVersion(self):
         try:
@@ -333,19 +335,19 @@ class My_pasport:
         if self.astra_version:
             print(f'{SEPORATOR}Информация о системе Astra Linux:\n\t{self.astra_version}')
         else:
-            print(f'{SEPORATOR}Версия Astra Linux не определёна.')
+            print(f'{SEPORATOR}Версия Astra Linux не определена.')
 
     def printAstraUpdate(self):
         if self.astra_update_version:
             print(f'{SEPORATOR}Информация об обновлениях Astra Linux:\n\t{self.astra_update_version}')
         else:
-            print(f'{SEPORATOR}Информация об обновлениях Astra Linux не определёна.')
+            print(f'{SEPORATOR}Информация об обновлениях Astra Linux не определена.')
 
     def printAstraBuild(self):
         if self.astra_build_version:
             print(f'{SEPORATOR}Информация о сборке Astra Linux:\n\t{self.astra_build_version}')
         else:
-            print(f'{SEPORATOR}Информация о сборке Astra Linux не определёна.')
+            print(f'{SEPORATOR}Информация о сборке Astra Linux не определена.')
 
     def getSudisInfo(self):
         try:
@@ -376,7 +378,7 @@ class My_pasport:
             for i in self.sudisInfo:
                 print(f'\t{i}')
         else:
-            print(f'{SEPORATOR}Информация о пакетах СУДИС: не определёна.')
+            print(f'{SEPORATOR}Информация о пакетах СУДИС: не определена.')
 
     def runCLI(self):
         print(f'Тест модуля "паспорт АРМ {VERSION}" :')

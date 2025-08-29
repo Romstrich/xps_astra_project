@@ -186,7 +186,7 @@ class ReaderXPS:
                     if __name__=='__main__':
                         print(f'Выявлен пароль:\n\t{self.psw}')
                     # self.put_to_clip(i)
-                    return i
+                    return str(i)
                 else:
                     pass
         else:
@@ -384,7 +384,7 @@ if __name__ == '__main__':
     # txtTest.getPasswd()
     # Проверить создание объекта, просто подсунуть ему парольную фразу + Всё и получить пароль
 
-    # massDocTest=Mass_ReaderXPS('/home/user/Desktop/xps3_project',fulldada=True)
+    massDocTest=Mass_ReaderXPS('/home/user/Desktop',fulldada=True)
     # # massDocTest = Mass_ReaderXPS('/home/user/Desktop/xps3_projecd',fulldada=True)
     # # massDocTest = Mass_ReaderXPS('/home/user/Desktop/xps3_project/build',fulldada=True)
     # # massDocTest.printDataList(showfull=True)#dataXPSdict()
@@ -404,7 +404,7 @@ if __name__ == '__main__':
     # doctest = Read_XPS('test7.xps')
     # doctest = Read_XPS('test8.xps')
     # # doctest = Read_XPS('test9.xps')
-    # doctest = ReaderXPS('/home/user/Desktop/xps3_project/test10.xps')
-    #doctest.getPasswd()
+    doctest = ReaderXPS(massDocTest.fileList[0])
+    doctest.getPasswd()
 else:
     print(f'module_xps was loading like module.\nVersion: {VERSION}')

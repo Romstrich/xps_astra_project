@@ -1,7 +1,7 @@
 '''
     ==============================Модуль работы с VipNet=================
     ---------------------------------------------------------------------
-    Версия 0.1 для xps_astra 0.4
+    Версия 0.1.1 для xps_astra 0.4
 
         Модуль работы с ViPNet
         - Определяет установленный клиент
@@ -9,17 +9,28 @@
         - Операции с ключём (системным)
         - Операции с випнет-клиентом
 
+        0.1.1
+
+        - добавлена функция обновления состояния
+        *- атрибут ошибки клиента (неправильно установлен, не может
+            ответить)
+        - атрибут наличия ключа
+
+    *не реализовано/не доработано
+
         Мотрич Р.Д. ascent.mrd@yandex.ru 2025 г.
     ---------------------------------------------------------------------
 '''
 
 import os.path
+from os import system
 import subprocess
 from pathlib import Path
 
 from module_permissions import My_Permissions
+from module_xps import ReaderXPS
 
-VERSION = '0.1'
+VERSION = '0.1.1'
 HELP = __doc__
 
 
@@ -41,8 +52,43 @@ class My_ViPNet():
             self.sysKeyInfo = self.getSysKeyInfo()
         else:
             self.sysKeyInfo = False
+        self.installedKey = False
+        if self.sysKeyInfo:
+            try:
+                #если клиент работает:
+                self.installedKey = self.sysKeyInfo['KEYSTATUS']
+            except BaseException as error:
+                print('No_key')
+            else:
+                pass
+        self.error=None
+
+        # print(f'KEYSTATUS:\t {self.sysKeyInfo["KEYSTATUS"]}')
+        # print(f'installedKey:\t {self.installedKey}')
+
         # self.ViPNetInfo = False
         # self.error = []
+    def refresh(self):
+        '''
+        Обновление состояния
+        :return:
+        '''
+        print('Обновление информации ViPNet...')
+        self.error=None
+        self.installed = self.checkViPNet()
+        if self.installed:
+            self.sysKeyInfo = self.getSysKeyInfo()
+        else:
+            self.sysKeyInfo = False
+        self.installedKey=False
+        if self.sysKeyInfo:
+            try:
+                self.installedKey= self.sysKeyInfo['KEYSTATUS']
+            except BaseException as error:
+                print('No_key')
+            else:
+                pass
+        print('Обновление информации ViPNet завершено.')
 
     def checkViPNet(self):
         '''
@@ -64,12 +110,14 @@ class My_ViPNet():
             # self.error.append(e)
             print('Возможно, ViPNet не установлен в системе.')
             print(f'Ошибка: {e}')
+            self.error=e
             return False
         else:
             return False
 
     def getSysKeyInfo(self):
         '''
+        Сбор необходимой информации о ключе:
         VPN status              STATUS          состояние Включён/выключен
         Host name               NAME            Имя ключа
         Host ID                 ID
@@ -88,6 +136,11 @@ class My_ViPNet():
                     resultDict = {}  # словарь для возврата
                     print('Попробуем узнать информацию о системном ключе')
                     sysKey = os.popen('sudo vipnetclient info').read()
+                    # print(f'Выявлено: {sysKey}')
+                    if self.installed:
+                        if len(sysKey)==0:
+                            print('!Возможно, випнет  установлен, но не настроен/настроен с ошибкой.')
+                            print('Возможное решение: переустановка через dpkg.')
                     for line in sysKey.splitlines():
                         # Преобразовать в словарь по первым словам
                         if len(line):
@@ -102,9 +155,9 @@ class My_ViPNet():
                         if 'VPN' in line.split():
                             # Включён/выключен:
                             if line.split()[-1] == 'enabled':
-                                print('Сейчас ViPNet включён')
+                                print('Сейчас ViPNet включен')
                             else:
-                                print('Сейчас ViPNet выключён')
+                                print('Сейчас ViPNet выключен')
                     # print(statusDict)
                     # Заодно заполним свой словарь
                     for key, value in statusDict.items():
@@ -128,7 +181,10 @@ class My_ViPNet():
                             if 'failed' in value:
                                 resultDict.update({'KEYSTATUS': False})
                             elif 'verified' in value:
-                                resultDict.update({'KEYSTATUS': True})
+                                if 'not' in value:
+                                    resultDict.update({'KEYSTATUS': False})
+                                else:
+                                    resultDict.update({'KEYSTATUS': True})
                         if key == 'User':
                             resultDict.update({'USER': value})
                         if key == 'Autostart':
@@ -156,40 +212,157 @@ class My_ViPNet():
     def ViPNetInfo(self):
         pass
 
-    def installKey(self):
-        pass
+    def findFirstInDir(self,dirname):
+        '''
+        найдём первый попавшийся дстешник в каталоге
+        '''
+        if os.path.isdir(dirname):
+            print(f'Каталог {dirname} существует')
+
+            out = []
+            if dirname:
+                print(f'Получим список файлов с расширением dst.\t{dirname}')
+                filelist = os.listdir(dirname)
+                # print(filelist)
+                for i in filelist:
+                    if Path(i).suffix == '.dst':
+                        # print(os.path.join(self.dirName,i))
+                        out.append(os.path.join(dirname, i))
+                if len(out):
+                    print(f'Файлы dst обнаружены: {out[0]}')
+                    return out[0]
+                else:
+                    print('Файлы dst не обнаружены')
+                    return False
+
+            else:
+                print(f'Не могу получить список файлов.\n\tСостояние каталога: {self.dirName}')
+                return False
+        else:
+            print(f'Каталог {dirname} по указанному пути не существует.\n\tПроверьте путь.')
+            # self.error.append('file_not_exists')
+            return False
+
+    def installKey(self,dstFile=False,xpsFile=False):
+        '''
+        Установка ключа
+        :return:
+        '''
+        command='sudo vipnetclient installkeys '
+        if dstFile:
+            command+=dstFile #+ ' --psw rdfveiecn,ek'
+            if xpsFile:
+                #print(ReaderXPS(xpsFile).getPasswd())
+                #xps=ReaderXPS(xpsFile)
+
+                command+=' --psw '+ReaderXPS(xpsFile).getPasswd()
+            else:
+                password=input('Отсутствует файл пароля на рабочем столе.\n\tВВЕДИТЕ ПАРОЛЬ:')
+                command += ' --psw ' + password
+            #print(command)
+
+            system(command)
+        else:
+            print('Нет файла ключа на входе.')
+            return False
 
     def deleteKey(self):
         try:
-            command1 = ['sudo', '-S', 'vipnetclient', 'stop']
-            command2 = ['sudo', '-S', 'vipnetclient', 'deletekeys']
-            com1 = subprocess.call(command1)  # , stdout=subprocess.PIPE, encoding='utf-8')
+            if self.ViPNetStop():
+                # command2 = ['sudo', '-S', 'vipnetclient', 'deletekeys']
+                # command3 = ['yes','|','sudo', 'vipnetclient', 'deletekeys']
+                system('yes | sudo vipnetclient deletekeys ')
+            #com1 = subprocess.call(command1)  # , stdout=subprocess.PIPE, encoding='utf-8')
             # subprocess.run(com1,stdin=com1.stdout)
             # com2 = subprocess.Popen(command2)#, stdout=subprocess.PIPE, encoding='utf-8')
-            subprocess.call(command2)  # stdin=com2.stdout)
-            print('Ключи удалены из системы')
+                #subprocess.call(command3)  # stdin=com2.stdout)
+
         except BaseException as e:
-            print(e)
+            print(f'При удалении установленного ключа возникла ошибка:\n\t{e}')
+            return False
         else:
-            pass
+            print('Ключи удалены из системы')
+            return True
 
     def ViPNetStart(self):
         '''
         Запуск клиента
         :return:
         '''
-        pass
+        if self.privileges.sudoCanRun:
+            try:
+                command1 = ['sudo', '-S', 'vipnetclient', 'start']
+                subprocess.call(command1)
+            except BaseException as error:
+                print(f'При запуске ViPNet возникла ошибка:\n\t{error}')
+                return False
+            else:
+                print('Клиент запущен')
+                return True
+        else:
+            print('Привелегии не позволяют запустить клиент.')
+            return False
 
     def ViPNetStop(self):
         '''
         Останов клиента
         :return:
         '''
-        pass
+        if self.privileges.sudoCanRun:
+            try:
+                command1 = ['sudo', '-S', 'vipnetclient', 'stop']
+                subprocess.call(command1)
+            except BaseException as error:
+                print(f'При остановке ViPNet возникла ошибка:\n\t{error}')
+                return False
+            else:
+                print('Клиент остановлен')
+                return True
+        else:
+            print('Привелегии не позволяют остановить клиент.')
+            return False
+
 
     def ViPNetGUI(self):
         pass
 
+    def printKeyInfo(self):
+        try:
+            print(f"{self.sysKeyInfo['STATUS']}")
+            print(f"{self.sysKeyInfo['NAME']}" )
+            print(f"{self.sysKeyInfo['ID']}  ")
+            print(f"{self.sysKeyInfo['COORDINATOR']}")
+            print(f"{self.sysKeyInfo['NETNAME']    }")
+            print(f"{self.sysKeyInfo['NETID']      }")
+            print(f"{self.sysKeyInfo['KEYSTATUS']  }")
+            print(f"{self.sysKeyInfo['USER']       }")
+            print(f"{self.sysKeyInfo['AUTOSTART']  }")
+        except BaseException as error:
+            print(f'При выведении информации установленного ключа возникла ошибка:\n\t{error}')
+            print(f'Состояние installedKey:\t{self.installedKey}')
+            return False
+        else:
+            return True
+
+    def printKeyInfoWide(self):
+        try:
+            if self.installedKey:
+                print(f"Состояние клиента (вкл/выкл):\t{self.sysKeyInfo['STATUS']}")
+                print(f"Имя ключа:\t {' '.join(self.sysKeyInfo['NAME'])}" )
+                print(f"Идентифткатор ключа:\t{''.join(self.sysKeyInfo['ID'])}  ")
+                print(f"Координатор:\t{' '.join(self.sysKeyInfo['COORDINATOR'])}")
+                print(f"Имя сегмента сети:\t{' '.join(self.sysKeyInfo['NETNAME'])    }")
+                print(f"Идентификатор сети:\t{' '.join(self.sysKeyInfo['NETID'])      }")
+                print(f"Пользователь ключа:\t{''.join(self.sysKeyInfo['USER'])       }")
+                print(f"Запуск с системой (вкл/выкл):\t{self.sysKeyInfo['AUTOSTART']  }")
+            else:
+                print('Ключ не установлен')
+        except BaseException as error:
+            print(f'При выведении информации установленного ключа возникла ошибка:\n\t{error}')
+            print(f'Состояние installedKey:\t{self.installedKey}')
+            return False
+        else:
+            return True
     # def show_message(self, text='', gui=False):
     #     '''
     #     Функция вывода сообщений
