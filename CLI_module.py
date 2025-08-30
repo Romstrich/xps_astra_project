@@ -19,7 +19,7 @@
             --autorun*   Включить автозапуск клиента с системой, если
                 выключено.
             -m Режим меню.
-            --hardware* - краткая сводка по железу
+            --hardware - краткая сводка по железу и системе
 
     *не реализовано
 
@@ -74,6 +74,10 @@ class CLI_class:
         elif '-m' in argv:
             print('Menu mode')
             self.menu()
+        elif '--hardware' in argv:
+            print('Hardvare info')
+            self.hardwareInfo()
+
         else:
             print('Only xps read')
             self.passwordXps()
@@ -104,6 +108,9 @@ class CLI_class:
             return False
         else:
             return True
+    def hardwareInfo(self):
+        print('hardwareInfo run')
+        self.permissions.runSudoCommand('./sysinfo.sh')
 
 
     def installKey(self):
