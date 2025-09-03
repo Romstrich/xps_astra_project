@@ -1,13 +1,14 @@
 '''
     ==============================Модуль обработки прав==================
     ---------------------------------------------------------------------
-    Версия 0.2 для xps_astra 0.4
+    Версия 0.3 для xps_astra 0.5
 
         Модуль выявления пользователя, получения прав и выполнения команд
         - Определяет владельца сессии
         - Определяет права sudo
         - Находит рабочий стол пользователя
         - Запрашивает пароль администратора для выполнения команды su
+        *- Включение логов
 
         ПРОВЕРИТЬ РЕШЕНИЕ С ПАРОЛЕМ!!!
 
@@ -21,11 +22,11 @@ from pwinput import pwinput
 from chardet import detect
 from chardet import detect
 
-from module_messenger import Messenger
+from module_messenger import My_logger
 
-VERSION = '0.2'
+VERSION = '0.3'
 HELP = __doc__
-
+logger=My_logger
 
 # TEST_SUDO_COMMAND="if sudo -S -p '' echo -n < /dev/null 2> /dev/null ; then echo 'enabled.' ; else echo 'disabled' ; fi"
 class My_Permissions():
@@ -102,7 +103,7 @@ class My_Permissions():
         else:
             # if self.termOwner == 'root':
             if self.sudoAccess:
-                print('permissions проверка при инициализации')
+                logger.info('permissions проверка при инициализации')
                 sudoTest = subprocess.run(['sudo', '-A', 'ls', '/root'], stdout=subprocess.PIPE)
             # elif not self.sudoAccess:
             else:
@@ -112,12 +113,12 @@ class My_Permissions():
             sudoResult = sudoTest.stdout.decode(
                 detect(sudoTest.stdout)['encoding'])  # Разобраться со случаем, где ошибка!!!!
         except BaseException as error:
-            print('Команду от sudo мы не выполним')
+            logger.info('Команду от sudo мы не выполним. НЕТ ПРАВ!')
             if password:
                 print('!!!Пароль не принят!!!')
             return False
         else:
-            print('------------------Всё ОК - ПОЕХАЛИ!------------------')
+            logger.info('Права есть. Всё ОК - ПОЕХАЛИ!')
             if password:
                 print('--------------------Пароль принят--------------------')
                 self.sudoCanRun = 'password'
@@ -233,4 +234,4 @@ if __name__ == '__main__':
     # my_perm.runSudoCommand('ls \\n| grep .py')
     # my_perm.checkSudoRun('1')
 else:
-    print(f'module_permissions was loading like module.\nVersion: {VERSION}')
+    logger.info(f'module_permissions was loading like module.\nVersion: {VERSION}')

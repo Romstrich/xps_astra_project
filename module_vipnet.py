@@ -1,7 +1,7 @@
 '''
     ==============================Модуль работы с VipNet=================
     ---------------------------------------------------------------------
-    Версия 0.1.1 для xps_astra 0.4
+    Версия 0.2 для xps_astra 0.5
 
         Модуль работы с ViPNet
         - Определяет установленный клиент
@@ -16,6 +16,9 @@
             ответить)
         - атрибут наличия ключа
 
+        0.2
+        - Реализация логирования
+
     *не реализовано/не доработано
 
         Мотрич Р.Д. ascent.mrd@yandex.ru 2025 г.
@@ -29,10 +32,11 @@ from pathlib import Path
 
 from module_permissions import My_Permissions
 from module_xps import ReaderXPS
+from module_messenger import My_logger
 
-VERSION = '0.1.1'
+VERSION = '0.2'
 HELP = __doc__
-
+logger=My_logger
 
 class My_ViPNet():
     '''
@@ -134,13 +138,13 @@ class My_ViPNet():
                 if self.privileges.sudoCanRun:
                     statusDict = {}  # словарь статуса ключа
                     resultDict = {}  # словарь для возврата
-                    print('Попробуем узнать информацию о системном ключе')
+                    logger.info('Попробуем узнать информацию о системном ключе')
                     sysKey = os.popen('sudo vipnetclient info').read()
                     # print(f'Выявлено: {sysKey}')
                     if self.installed:
                         if len(sysKey)==0:
-                            print('!Возможно, випнет  установлен, но не настроен/настроен с ошибкой.')
-                            print('Возможное решение: переустановка через dpkg.')
+                            logger.info('!Возможно, випнет  установлен, но не настроен/настроен с ошибкой.')
+                            logger.info('Возможное решение: переустановка через dpkg.')
                     for line in sysKey.splitlines():
                         # Преобразовать в словарь по первым словам
                         if len(line):
@@ -155,9 +159,9 @@ class My_ViPNet():
                         if 'VPN' in line.split():
                             # Включён/выключен:
                             if line.split()[-1] == 'enabled':
-                                print('Сейчас ViPNet включен')
+                                logger.info('Сейчас ViPNet включен')
                             else:
-                                print('Сейчас ViPNet выключен')
+                                logger.info('Сейчас ViPNet выключен')
                     # print(statusDict)
                     # Заодно заполним свой словарь
                     for key, value in statusDict.items():
@@ -198,7 +202,7 @@ class My_ViPNet():
                     #     print(f'-----{key}\t\t\t{value}')
                     return resultDict
                 else:
-                    print('Привелегии не позволяют узнать информацию о системном ключе')
+                    logger.info('Привелегии не позволяют узнать информацию о системном ключе')
                     return False
             else:
                 print('Возвращаю FALSE')
@@ -385,14 +389,14 @@ class My_ViPNet():
 
 
 if __name__ == '__main__':
-    print(f'Тестовая работа с классом MyViPNet.\nVersion: {VERSION}')
+    logger.info(f'Тестовая работа с классом MyViPNet.\nVersion: {VERSION}')
     print(__doc__)
     vpn = My_ViPNet()
     # vpn.privileges.permissionRezume()
-    print(f'Результат проверки установленной версии ViPNet: {vpn.installed}')
+    logger.info(f'Результат проверки установленной версии ViPNet: {vpn.installed}')
     if vpn.sysKeyInfo:
         for key, value in vpn.sysKeyInfo.items():
             print(f'-----{key}\t\t\t{value}')
     # vpn.privileges.permissionRezume()
 else:
-    print(f'module_vipnet was loading like module.\nVersion: {VERSION}')
+    logger.info(f'module_vipnet was loading like module.\nVersion: {VERSION}')

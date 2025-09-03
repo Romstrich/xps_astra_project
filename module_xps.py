@@ -1,7 +1,7 @@
 '''
     ==============================Модуль распознания XPS==================
     ---------------------------------------------------------------------
-    Версия 0.4 для xps_astra 0.4
+    Версия 0.4.1 для xps_astra 0.5
 
         Модуль работы с одностраничными xps и txt файлами, содержащими
     информацию для випнет.
@@ -9,17 +9,22 @@
         - сохраняет xps в txt (только первая страница)
         - обработка дирректории с фалами-паролями
 
+    4.1
+        -введение логирования
+
         Мотрич Р.Д. ascent.mrd@yandex.ru 2025 г.
     ---------------------------------------------------------------------
 '''
 
 import fitz, re, os.path
 from pathlib import Path
+from module_messenger import My_logger
 
 XPS = '.xps'
 TXT = '.txt'
 VERSION = '0.4'
 HELP = __doc__
+logger=My_logger
 
 
 class ReaderXPS:
@@ -407,4 +412,4 @@ if __name__ == '__main__':
     doctest = ReaderXPS(massDocTest.fileList[0])
     doctest.getPasswd()
 else:
-    print(f'module_xps was loading like module.\nVersion: {VERSION}')
+    logger.info(f'module_xps was loading like module.\nVersion: {VERSION}')

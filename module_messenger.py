@@ -6,6 +6,14 @@
     будет применяться свой меменджер
     ---------------------------------------------------------------------
 '''
+VERSION="0.1"
+import logging
+
+My_logger=logging.getLogger()
+My_logger.setLevel(logging.INFO)
+streamLog=logging.StreamHandler()
+streamLog.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(module)s - %(message)s'))
+My_logger.addHandler(streamLog)
 
 class Messenger:
     '''
@@ -38,3 +46,5 @@ if __name__ == '__main__':
     message=Messenger()
     # message('Куку','ты это видишь?','Интересно, кака работает эта штука')
     message()
+else:
+    My_logger.info(f'module_messanger was loading like module.\nVersion: {VERSION}')
