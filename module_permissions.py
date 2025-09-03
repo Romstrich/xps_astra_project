@@ -113,7 +113,7 @@ class My_Permissions():
             sudoResult = sudoTest.stdout.decode(
                 detect(sudoTest.stdout)['encoding'])  # Разобраться со случаем, где ошибка!!!!
         except BaseException as error:
-            logger.info('Команду от sudo мы не выполним. НЕТ ПРАВ!')
+            logger.warning('Команду от sudo мы не выполним. НЕТ ПРАВ!')
             if password:
                 print('!!!Пароль не принят!!!')
             return False

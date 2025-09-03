@@ -202,7 +202,7 @@ class My_ViPNet():
                     #     print(f'-----{key}\t\t\t{value}')
                     return resultDict
                 else:
-                    logger.info('Привелегии не позволяют узнать информацию о системном ключе')
+                    logger.error('Привелегии не позволяют узнать информацию о системном ключе')
                     return False
             else:
                 print('Возвращаю FALSE')
@@ -225,7 +225,7 @@ class My_ViPNet():
 
             out = []
             if dirname:
-                print(f'Получим список файлов с расширением dst.\t{dirname}')
+                logger.info(f'Получим список файлов с расширением dst.\t{dirname}')
                 filelist = os.listdir(dirname)
                 # print(filelist)
                 for i in filelist:
@@ -233,17 +233,17 @@ class My_ViPNet():
                         # print(os.path.join(self.dirName,i))
                         out.append(os.path.join(dirname, i))
                 if len(out):
-                    print(f'Файлы dst обнаружены: {out[0]}')
+                    logger.info(f'Файлы dst обнаружены: {out[0]}')
                     return out[0]
                 else:
-                    print('Файлы dst не обнаружены')
+                    logger.warning('Файлы dst не обнаружены')
                     return False
 
             else:
-                print(f'Не могу получить список файлов.\n\tСостояние каталога: {self.dirName}')
+                logger.warning(f'Не могу получить список файлов.\n\tСостояние каталога: {self.dirName}')
                 return False
         else:
-            print(f'Каталог {dirname} по указанному пути не существует.\n\tПроверьте путь.')
+            logger.error(f'Каталог {dirname} по указанному пути не существует.\n\tПроверьте путь.')
             # self.error.append('file_not_exists')
             return False
 
@@ -282,10 +282,10 @@ class My_ViPNet():
                 #subprocess.call(command3)  # stdin=com2.stdout)
 
         except BaseException as e:
-            print(f'При удалении установленного ключа возникла ошибка:\n\t{e}')
+            logger.error(f'При удалении установленного ключа возникла ошибка:\n\t{e}')
             return False
         else:
-            print('Ключи удалены из системы')
+            logger.info('Ключи удалены из системы')
             return True
 
     def ViPNetStart(self):
@@ -298,13 +298,13 @@ class My_ViPNet():
                 command1 = ['sudo', '-S', 'vipnetclient', 'start']
                 subprocess.call(command1)
             except BaseException as error:
-                print(f'При запуске ViPNet возникла ошибка:\n\t{error}')
+                logger.error(f'При запуске ViPNet возникла ошибка:\n\t{error}')
                 return False
             else:
-                print('Клиент запущен')
+                logger.info('Клиент запущен')
                 return True
         else:
-            print('Привелегии не позволяют запустить клиент.')
+            logger.warning('Привелегии не позволяют запустить клиент.')
             return False
 
     def ViPNetStop(self):
@@ -317,13 +317,13 @@ class My_ViPNet():
                 command1 = ['sudo', '-S', 'vipnetclient', 'stop']
                 subprocess.call(command1)
             except BaseException as error:
-                print(f'При остановке ViPNet возникла ошибка:\n\t{error}')
+                logger.error(f'При остановке ViPNet возникла ошибка:\n\t{error}')
                 return False
             else:
-                print('Клиент остановлен')
+                logger.info('Клиент остановлен')
                 return True
         else:
-            print('Привелегии не позволяют остановить клиент.')
+            logger.warning('Привелегии не позволяют остановить клиент.')
             return False
 
 
