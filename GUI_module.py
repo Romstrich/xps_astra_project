@@ -5,14 +5,16 @@
 
         Модуль реализации графического интерфейса, включаещего в себя:
         - главное окно программы
-        - Приветственное сообщение
+        - Приветственное сообщение, оно же  диагностическое
         *- окно состояния ViPNet
         *- окно информации о программе
         *- окно паспортной информации
         *- окно системной информации
-        *- вызов локальной веб-справки
+        *- вызов локальной веб-справки от лица пользователя
         *- диалоговые окна
-        *- ведение логов
+        - ведение логов
+        - загрузка шрифта
+        *- загрузка иконки
 
     Сейчас: Наладка главного окна, шрифта и т.д. (оформление)
 
@@ -29,7 +31,8 @@
 
 import logging, os.path
 # import tkinter
-from tkinter import filedialog, ttk, font, Tk, Menu
+from tkinter import filedialog, ttk, font, Tk, Menu,PhotoImage,Text, Label,SUNKEN, X,W
+from tkinter.messagebox import showinfo,showwarning
 from module_permissions import My_Permissions
 from module_messenger import My_logger
 from module_vipnet import My_ViPNet
@@ -48,6 +51,8 @@ logger=My_logger
 class mainWin(Tk):
     '''
     GUI сборка приложения
+    функции
+    аргументы
     '''
     def __init__(self,title='',*args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -56,9 +61,9 @@ class mainWin(Tk):
         self.backEnd = BackEndWork()
         self.xfilepath=False
         self.dfilepath = False
-        self.xdirpath=False
+        self.xtdirpath=False
         self.xddirpath = False
-        # -----------Загрузим кастомный шрифт
+        # -----------Загрузим кастомный шрифт и иконку
         try:
             logger.info('Загрузка шрифта')
             custom_font_path = "lib/PT-Astra-Serif_Regular.ttf"
@@ -68,6 +73,13 @@ class mainWin(Tk):
             logger.info('Шрифт загружен')
         except BaseException as error:
             logger.error("Неудачная загрузка шрифта")
+        try:
+            logger.info('Загрузка иконки')
+            icon=PhotoImage(file="lib/ico.png")
+            self.iconphoto(True,icon)
+            logger.info('Иконка загружена')
+        except BaseException as error:
+            logger.error("Неудачная иконки")
 
         # -----------Геометрия главного окна
         self.resizable(width=False, height=False)
@@ -108,6 +120,7 @@ class mainWin(Tk):
         self.sysmenu=Menu(self.mainmenu,tearoff=0)
         self.sysmenu.add_command(label='Информация для паспорта')
         self.sysmenu.add_command(label='Информация системная')
+        self.sysmenu.add_command(label='Диагностическое окно',command=lambda : self.greetMessage(hide=False,refresh=True))
         # =============Сборка раздела "Справка"
         self.helpmenu = Menu(self.mainmenu,tearoff=0)#, tearoff=0)
         self.helpmenu.add_command(label="Инструкция")#, command=self.open_help)
@@ -122,91 +135,132 @@ class mainWin(Tk):
 
         self.config(menu=self.mainmenu)
 
+        # =============Сборка зоны просмотра и строки состояния
+            # =============Сборка зоны просмотра
+        self.xpsText=Text(height=13 )
+        self.xpsText.place(relx=0,rely=0)
+        self.xpsText.pack(fill=X)
+            # =============Сборка строки состояния
+        self.statusBar = Label(self, bd=1, relief=SUNKEN, anchor=W,height=2)
+        self.statusBar.pack(fill=X)
+
+        # =============Диагностическое окно приветствия
         self.greetMessage()
 
-        # =============Проверка для пунктов меню
+        # =============Проверка для пунктов меню, текстового поля и панели состояния
     def refreshMenu(self):
             '''Отключение пунктов меню по "показаниям"
             self.backend=BackEndWork()
             '''
-            pass
+            self.backEnd.refresh(xpsPath=self.xfilepath,dstPath=self.dfilepath,
+                                 dirPath=self.xddirpath,dirTxtPath=self.xtdirpath)
+
+    def refreshText(self):
+        '''
+
+        :return:
+        '''
+        pass
+
         # =============Окончание сборки главного окна
     # =============Процедура при запуске: 1.права, 2. випнет и ключ, 3. дст и xps
         # =============Выдача окна с сообщением, предложением установки
-    def greetMessage(self):
+    def greetMessage(self,hide=True,refresh=False):
         '''Окно приветствия
+        +Нацелиться на побновление в процессе работы программы
+        !!!Параметры для обновления
                                 ЕСТЬ            НЕТ
         Права
         Випнет                  устан
         установленный ключ      удал+устан      устан
         ключ на столе           устан
         пароль на столе         устан           устан+введите пароль
-
+        can_install-отвечает на вопрос возможности установки
+        refresh_key-необходимость заменять ключ
+        #greetWin-окно сообщения
         '''
-        can_instlall=False
-        refresh_key=False
+        if refresh:
+            self.backEnd.refresh()
         message=''
-        resumeMsg=''
-
-        if self.backEnd.permission.sudoCanRun:
-            can_instlall = True and can_instlall
-            message += 'Привелегии исполнения есть\n'
-            if self.backEnd.xpsFile:
-                message += 'Файл пароля есть\n'
-                can_instlall = True
+        greetDict=self.backEnd.greetOptions()
+        if greetDict['permis']:
+            #can_instlall = True and can_instlall
+            message += '-Привелегии исполнения есть.\n'
+            if greetDict['xps_exists']:
+                message += 'Файл пароля на рабочем столе: -есть\n'
+                # can_instlall = True
             else:
-                message += 'Файла пароля нет\n'  # установка из программы
-                can_instlall = False
-            if self.backEnd.dstFile:
-                message += 'Файл ключа есть\n'
-                can_instlall = True and can_instlall
+                message += 'Файла пароля на рабочем столе: -нет\n'  # установка из программы
+                # can_instlall = False
+            if greetDict['dst_exists']:
+                message += 'Файл ключа на рабочем столе: -есть\n'
+                # can_instlall = True and can_instlall
             else:
-                message += 'Файла ключа нет\n'  # установка из программы
-                can_instlall = False and can_instlall
-            if self.backEnd.vipnet.installed:
-                if self.backEnd.vipnet.installedKey:
-                    refresh_key = True
+                message += 'Файла ключа на рабочем столе: -нет\n'  # установка из программы
+                # can_instlall = False and can_instlall
+            if greetDict['client_exists']:
+                if greetDict['refresh_key']:
+                    # refresh_key = True
                     message += 'Имеется установленный ключ:\n'
-                    message += ' '.join(self.backEnd.vipnet.sysKeyInfo['NAME']) + '\n'
-                    can_instlall = True and can_instlall
+                    message += '-! '+' '.join(self.backEnd.vipnet.sysKeyInfo['NAME']) #+ '\n'
+                    # can_instlall = True and can_instlall
                 else:
-                    message += 'Установленного ключа нет\n'
-                    can_instlall = True and can_instlall
+                    message += '-Установленного ключа нет\n-Клиент установлен'
+                    # can_instlall = True and can_instlall
             else:
-                message += 'Клиент не установлен\n'
-                can_instlall = False and can_instlall
+                message += '-! Клиент не установлен\n'
+                # can_instlall = False and can_instlall
         else:
-            message += 'Перезапустите программу с повышением привелегий\n'
-            can_instlall = False and can_instlall
+            message += '! Перезапустите программу с повышением привелегий.\n-Ограниченный функционал.'
+            # can_instlall = False and can_instlall
+        if self.backEnd.vipnet.error:
+            message+='Рекомендую переустановить клиент.'
         logger.info(message)
-        logger.info(f'Замена ключа-{refresh_key}')
-        logger.info(f'Установить сейчас-{can_instlall}')
+        logger.info(f'Замена ключа-{greetDict["refresh_key"]}')
+        logger.info(f'Установить сейчас-{greetDict["can_install"]}')
+        if hide:
+            self.withdraw()
+        if greetDict["can_install"]:
+            if greetDict['refresh_key']:
+                showwarning(title="Предупреждение-установлен ключ", message=message)#+'!')
+            else:
+                showinfo(title="Информация",message=message)
+        else:
+            showwarning(title="Предупреждение",message=message)
+        if hide:
+            self.deiconify()
+
+
+
+
 
         # =============Открытие документа и каталога
-    def openXPSFile(self,path=False):
+    def openXPSFile(self,dirPath=False):
+        logger.info('Открытие файла xps')
         fTypes = [('Файлы xps', '.xps')]#, ('Файлы txt', '.txt')]  # ,('Текстовые файлы','.txt')]
-        if path:
-            self.xfilepath = filedialog.askopenfilename(filetypes=fTypes,initialdir=path)
+        if dirPath:
+            self.xfilepath = filedialog.askopenfilename(filetypes=fTypes,initialdir=dirPath)
         else:
             self.xfilepath = filedialog.askopenfilename(filetypes=fTypes, initialdir='/home')
+        self.refreshMenu()
 
-    def openDSTFile(self,path=False):
+    def openDSTFile(self,dirPath=False):
         fTypes = [('Файлы dst', '.dst')]  # , ('Файлы txt', '.txt')]  # ,('Текстовые файлы','.txt')]
-        if path:
-            self.dfilepath = filedialog.askopenfilename(filetypes=fTypes, initialdir=path)
+        if dirPath:
+            self.dfilepath = filedialog.askopenfilename(filetypes=fTypes, initialdir=dirPath)
         else:
             self.dfilepath = filedialog.askopenfilename(filetypes=fTypes, initialdir='/home')
 
-    def openDirxps(self,path=False):
-        if path:
-            self.xdirpath = filedialog.askdirectory(initialdir=path)
+    def openDirxps(self,dirPath=False):
+        if dirPath:
+            self.xdirpath = filedialog.askdirectory(initialdir=dirPath)
         else:
             self.xdirpath = filedialog.askdirectory(initialdir='/home')
         #Проверяем, есть ли xps в даннном каталоге, если есть - включаем пункт меню, -нет вывключаем
 
-    def openDirxpsdst(self,path=False):
-        if path:
-            self.xddirpath = filedialog.askdirectory(initialdir=path)
+    def openDirxpsdst(self,dirPath=False):
+        if dirPath:
+            self.xddirpath = filedialog.askdirectory(initialdir=dirPath)
         else:
             self.xddirpath = filedialog.askdirectory(initialdir='/home')
     #Проверяем есть ли в данном каталоге xps и дст
@@ -224,11 +278,115 @@ class BackEndWork():
         logger.info("Проверка разрешений")
         self.permission=My_Permissions()
         logger.info("Проверка ViPNet клиента")
-        self.vipnet=My_ViPNet()
+        self.vipnet=My_ViPNet(permis=self.permission)
+        if self.vipnet.error:
+            logger.error('Ошибка обращения к vipnetcient. Рекомендую переустановить.')
         #передача пароля с рабочего стола
         self.xpsFile=self.checkXPSfile(dirpath=self.permission.userDesktop.split()[0])
         self.dstFile=self.checkDSTfile(dirpath=self.permission.userDesktop.split()[0])
         pass
+
+    # =============Обновление пременных, выдыча данных
+
+    def refresh(self,xpsPath=False,dstPath=False,dirPath=False,dirTxtPath=False):
+        '''Обновление данных
+        !!!Получить входные параметры
+        if xpsPath+dstPath+dirPath+dirTxtPath==False:
+TypeError: can only concatenate str (not "bool") to str
+
+        xpsPath=путь к xps
+        dstPath=путь к dst
+        dirPath=каталог xps+dst
+        dirTxtPath=каталог xps для перехода в txt
+        (по аналогии с __init__)'''
+        logger.info("Обновление данных")
+        self.permission.refresh()
+        logger.info("Проверка ViPNet клиента")
+        self.vipnet.refresh()
+        if self.vipnet.error:
+            logger.error('Ошибка обращения к vipnetcient. Рекомендую переустановить.')
+        # передача файлов пароля и dst
+        logger.info("Проверка файлов")
+        if dirPath:
+            #В приоретете
+            logger.info('Смотрим переданный каталог xps+dst')
+            pass
+        else:
+            #смотрим далее xps
+            if xpsPath:
+                logger.info('Смотрим переданный xps')
+            # смотрим далее dst
+            if dstPath:
+                logger.info('Смотрим переданный dst')
+            # смотрим далее каталог для преобразования в дст
+            if dirTxtPath:
+                logger.info('Смотрим переданный каталог xps в dst')
+        #если ничего нет падаем по дефолту:
+        if bool(xpsPath)+bool(dstPath)+bool(dirPath)+bool(dirTxtPath)==False:
+            logger.info('Смотрим рабочий стол')
+            self.xpsFile = self.checkXPSfile(dirpath=self.permission.userDesktop.split()[0])
+            self.dstFile = self.checkDSTfile(dirpath=self.permission.userDesktop.split()[0])
+        logger.info('Файлы проверены')
+
+    def refreshText(self):
+        '''
+        Обновленние информации для текстового поля и панели состояния
+        :return:
+        '''
+
+
+    def greetOptions(self,refresh=False):
+        '''Функция для приветсвенного окна
+        И НЕ ТОЛЬКО
+        can_install=можно ставить
+        permis=привилегии
+        xps_exists=есть xps
+        dst_exists=есть dst
+        refresh_key=есть установленный ключ
+        client_exists = клиент установлен
+        ВОЗВРАЩАЕТ СЛОВАРЬ ЭТИХ ДАННЫХ'''
+        if refresh:
+            self.refresh()
+        can_install=True
+        permis=False
+        xps_exists=False
+        dst_exists=False
+        refresh_key=False
+        client_exists = True
+
+        if self.permission.sudoCanRun:
+            can_instlall = True and can_install
+            permis=True
+            if self.xpsFile:
+                xps_exists=True
+                can_install = True
+            else:
+                xps_exists=False
+                can_install = False
+            if self.dstFile:
+                dst_exists=True
+                can_install = True and can_install
+            else:
+                dst_exists=False
+                can_install = False and can_install
+            if self.vipnet.installed:
+                if self.vipnet.error:
+                    logger.error('Ошибка обращения к vipnetcient. Рекомендую переустановить.')
+                if self.vipnet.installedKey:
+                    refresh_key = True
+                    can_install = True and can_install
+                else:
+                    refresh_key=False
+                    can_install = True and can_install
+            else:
+                client_exists=False
+                can_install = False and can_install
+        else:
+            permis=False
+            can_install = False and can_install
+        return {'permis':permis,'can_install':can_install,
+                'xps_exists':xps_exists,'dst_exists':dst_exists,
+                'refresh_key':refresh_key,'client_exists':client_exists}
 
     # =============Проверки по файлам и каталогам
 
@@ -238,6 +396,7 @@ class BackEndWork():
             return self.searchBySuffix(dirname=dirpath,suff='.xps')
         elif filepath:
             pass
+            #вернуть filepath, если всё в порядке
         else:
             return False
 
@@ -283,9 +442,12 @@ class BackEndWork():
 
 
 if __name__ == '__main__':
+    # try:
     logger.info(f'GUI_module was loading like program.\nVersion: {VERSION}')
     testWindow=mainWin(title=TITLE)
     testWindow.mainloop()
     logger.info("Завершение и выход.")
+    # except BaseException as error:
+    #     logger.error(f"Аварийное завершение: {error}")
 else:
     logger.info(f'GUI_module was loading like module.\nVersion: {VERSION}')

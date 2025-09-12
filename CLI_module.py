@@ -1,11 +1,11 @@
 '''
     ==============================Модуль режима терминала================
     ---------------------------------------------------------------------
-    Версия 0.4.a для xps_astra 0.4
+    Версия 0.4.2 для xps_astra 0.4.1, 0.5
 
         Модуль работает без ключей - режим поиска файла xps на рабочем
     столе, вывод содержимого первой страницы, выявление и
-    прередача пароля в буфер обмена*.
+    *прередача пароля в буфер обмена*.
         Ключи:
             -i  Установка ключа с рабочего стола
                 Ответы, если уже имеется установленный ключ:
@@ -23,6 +23,10 @@
 
     *не реализовано
 
+    0.4.2
+        - *вынесение части функционала модуль випнет
+        - передача параметра прав, исключение лишних проверок
+
         Мотрич Р.Д. ascent.mrd@yandex.ru 2025 г.
     ---------------------------------------------------------------------
 '''
@@ -32,16 +36,21 @@ import time
 from module_permissions import My_Permissions
 from module_xps import ReaderXPS, Mass_ReaderXPS
 from module_vipnet import My_ViPNet
+from module_messenger import My_logger
 
-VERSION = '0.4.a'
+VERSION = '0.4.1'
 HELP = __doc__
+logger=My_logger
 
 
 class CLI_class:
-    '''Класс работы CLI'''
+    '''Класс работы CLI
+    permis-переданные привилегии'''
 
-    def __init__(self):
-        self.permissions=My_Permissions()
+    def __init__(self,permis=False):
+        self.permissions=permis
+        if not self.permissions:
+            self.permissions=My_Permissions()
 
     def argReseption(self,args=None):
         '''
@@ -52,64 +61,64 @@ class CLI_class:
         from sys import argv
 
         if args:
-            print("Взятие рукописного ключа.")
+            # print("Взятие рукописного ключа.")
            # print(args.split(' '))
             argv = args.split(' ')
-        print(argv)
+        # print(argv)
         if '-h' in argv:
-            print('Help')
+            #print('Help')
             self.help()
         elif '-p' in argv:
-            print('Pasport')
+            # print('Pasport')
             self.pasport()
         elif '-i' in argv:
-            print('Install')
+            # print('Install')
             self.installKey()
         elif '-t' in argv:
-            print('Save txt')
+            # print('Save txt')
             self.saveTxt()
         elif '-d' in argv:
-            print('Save txt directory')
+            # print('Save txt directory')
             self.saveTxtDir(args)
         elif '-m' in argv:
-            print('Menu mode')
+            # print('Menu mode')
             self.menu()
         elif '--hardware' in argv:
-            print('Hardvare info')
+            # print('Hardvare info')
             self.hardwareInfo()
 
         else:
-            print('Only xps read')
+            # print('Only xps read')
             self.passwordXps()
 
     def help(self,menuY=False):
         '''Вывод справки'''
         if not menuY:
-            print('Help_start.')
+            logger.info('Help_start.')
         try:
             print(HELP)
             if not menuY:
                 input('Enter для выхода.')
         except BaseException as error:
-            print(f'Ошибка функции помощь:\n\t{error}')
+            logger.error(f'Ошибка функции помощь:\n\t{error}')
             return False
         else:
             return True
 
     def pasport(self):
         '''Вывод паспорта'''
-        print('Pasport_start.')
+        logger.info('Pasport_start.')
         try:
             from module_pasport import My_pasport
-            currentPasport = My_pasport()
+            currentPasport = My_pasport(permis=self.permissions)
             currentPasport.runCLI()
         except BaseException as error:
-            print(f'Ошибка функции паспорт:\n\t{error}')
+            logger.error(f'Ошибка функции паспорт:\n\t{error}')
             return False
         else:
             return True
     def hardwareInfo(self):
-        print('hardwareInfo run')
+        logger.info('hardwareInfo run')
         self.permissions.runSudoCommand('./sysinfo.sh')
 
 
@@ -123,11 +132,11 @@ class CLI_class:
         reinstall='N'
         print('Install_key_start.')
         if self.permissions.sudoCanRun:
-            print('Привелегии соответствуют требованиям операции.')
-            print('Получение входных данных.')
+            # print('Привелегии соответствуют требованиям операции.')
+            # print('Получение входных данных.')
             directory=self.permissions.userDesktop.split()[0]
-            client=My_ViPNet()
-            print(f'!!!!!!!!!!!!!!!!!!\nОШИБКА КЛИЕНТА\n{client.error}\n!!!!!!!!!!!!!!!!!')
+            client=My_ViPNet(permis=self.permissions)
+            logger.error(f'ОШИБКА КЛИЕНТА {client.error}')
             if client.installed :
                 print(f'Версия ViPNet: {client.installed}')
                 if not client.installedKey:
@@ -160,23 +169,23 @@ class CLI_class:
                         except BaseException as error:
                             xpsFile = None
                         if dstFile:
-                            print('Удаление текущего ключа.')
+                            logger.info('Удаление текущего ключа.')
                             client.deleteKey()
                             client.refresh()
-                            print('Проверка состояния.')
+                            # print('Проверка состояния.')
                             client.printKeyInfoWide()
-                            print('Установка нового ключа.')
+                            logger.info('Установка нового ключа.')
                             client.installKey(dstFile,xpsFile)
-                            print('Проверка состояния.')
+                            # print('Проверка состояния.')
                             client.refresh()
                             client.printKeyInfoWide()
                         else:
                             print('Файл ключа на рабочем столе не найден.')
                     elif reinstall == 'd':
-                        print('Приступаю к удалению ключа.')
+                        logger.info('Приступаю к удалению ключа.')
                         client.deleteKey()
                         client.refresh()
-                        print('Проверка состояния.')
+                        # print('Проверка состояния.')
                         client.printKeyInfoWide()
                     else:# reinstall == 'n':
                         print('Отмена...')
@@ -209,7 +218,7 @@ class CLI_class:
 
     def saveTxtDir(self,args=None):
         from sys import argv
-        print('Save txt dir start')
+        logger.info('Save txt dir start')
         try:
 
             if args:
@@ -227,15 +236,15 @@ class CLI_class:
             return True
 
     def passwordXps(self):
-        print('Password_start.')
-        print(self.permissions.userDesktop.split()[0])
+        logger.info('Password_start.')
+        # print(self.permissions.userDesktop.split()[0])
         dirInfo=Mass_ReaderXPS(dirname=self.permissions.userDesktop.split()[0])#,fulldada=True)
         # dirInfo.printDataList(showfull=True)
         if dirInfo.dirName:
             if dirInfo.fileList:
                 doc=ReaderXPS(dirInfo.fileList[0])
-                print(f'\tСОДЕРЖИМОЕ:\n{" ".join(doc.readList)}')
-                print(f'\tПАРОЛЬ:\n{doc.getPasswd()}')
+                # print(f'\tСОДЕРЖИМОЕ:\n{" ".join(doc.readList)}')
+                # print(f'\tПАРОЛЬ:\n{doc.getPasswd()}')
                 return doc.getPasswd()
             else:
                 print('Ошибка поиска файлов.')
@@ -258,12 +267,12 @@ class CLI_class:
 
 
 if __name__ == '__main__':
-    print(f'CLI_module was loading like program.\nVersion: {VERSION}')
+    logger.info(f'CLI_module was loading like program.\nVersion: {VERSION}')
     run = CLI_class()
     run.argReseption()
     print('Выход...')
-    time.sleep(5)
+    #time.sleep(5)
     input("press Enter to exit")
     # Проверим аргументы
 else:
-    print(f'CLI_module was loading like module.\nVersion: {VERSION}')
+    logger.info(f'CLI_module was loading like module.\nVersion: {VERSION}')

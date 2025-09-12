@@ -1,7 +1,7 @@
 '''
     ==============================Модуль данных об АРМ====================
     ---------------------------------------------------------------------
-    Версия 0.3 для xps_astra 0.4
+    Версия 0.3.1 для xps_astra 0.4.1, 0.5
 
                             В данном модуле получаем сведения
         1. Серийные номера и модели носителей*
@@ -12,6 +12,10 @@
         6. Информация о системе Astra linux
         7. Информация о пакетах SUDIS
         8. Информация об установленном системном ключе ViPNet
+
+    0.3.1
+        введение логирования
+        получение прав в качестве параметра
 
     *Возможно попадпние SD-карт в список несъёмных носителей
 
@@ -30,7 +34,7 @@ from re import search
 from module_vipnet import My_ViPNet
 from module_permissions import My_Permissions
 
-VERSION = '0.3'
+VERSION = '0.3.1'
 HELP = __doc__
 SEPORATOR = '-----\n\t'
 # {SEPORATOR}
@@ -86,11 +90,13 @@ class My_pasport:
 
     '''
 
-    def __init__(self):
+    def __init__(self,permis=False):
         try:
-            priv = My_Permissions()
-            self.permissions = priv
-            if priv.sudoCanRun:
+            if not permis:
+                self.permissions  = My_Permissions()
+            else:
+                self.permissions = permis
+            if self.permissions.sudoCanRun:
                 pass
             else:
                 print('!!!Нет привелегий, данные могут быть неверны, либо не получены!!!')
@@ -112,7 +118,7 @@ class My_pasport:
             self.kesl = self.getKesl()  # +
 
             print('Получение информации о ViPNet...')
-            vpn = My_ViPNet()
+            vpn = My_ViPNet(permis=self.permissions)
             self.vipnet = vpn.installed  # +
             self.vipnetKey = vpn.sysKeyInfo  # +
 

@@ -20,7 +20,6 @@ import os
 import subprocess
 from pwinput import pwinput
 from chardet import detect
-from chardet import detect
 
 from module_messenger import My_logger
 
@@ -40,6 +39,13 @@ class My_Permissions():
     '''
 
     def __init__(self):
+        self.user = self.detectUserName()  # пользователь сессии
+        self.termOwner = self.detectSudoUser()  # пользователь терминала
+        self.sudoAccess = self.checkSudoAccess()  # причастность к административным группам
+        self.sudoCanRun = self.checkSudoRun()  # Текущее право выполнять команды sudo
+        self.userDesktop = self.detectUserDesktop()
+
+    def refresh(self):
         self.user = self.detectUserName()  # пользователь сессии
         self.termOwner = self.detectSudoUser()  # пользователь терминала
         self.sudoAccess = self.checkSudoAccess()  # причастность к административным группам
@@ -167,27 +173,28 @@ class My_Permissions():
             # Вводим пароль и проверяем
             password = self.getSudoAccess(password)
             if password:
-                print(f'Выполняю команду {command}')
+                # print(f'Выполняю команду {command}')
                 shString = ['sudo']
             else:
-                print('Команда выполнена не будет: не верный пароль')
+                logger.warning('Команда выполнена не будет: не верный пароль')
                 return False
 
         for i in command.split(' '):
             shString.append(i)
-        print(shString)
+        # print(shString)
 
         try:
-            print('Запуск команды')
+            # print('Запуск команды')
             # shTest = subprocess.run(shString, capture_output=True, text=True)#, shell=True)# ,stdout=subprocess.PIPE)#capture_output=True,
             os.system('sudo ' + command)  # тестовый вариант)
             # вариант команды:vipnetclient stop; sudo yes | sudo vipnetclient deletekeys - работает удовлетворительно
 
         except BaseException as error:
-            print(f'Возникла ошибка {error}')
+            logger.error(f'Возникла ошибка {error}')
             return False
         else:
-            print('Проверь выполнение команды')
+            pass
+            # print('Проверь выполнение команды')
             # Возвращаем
             # return shTest.stdout.decode(detect(shTest.stdout)['encoding'])
 
@@ -197,7 +204,7 @@ class My_Permissions():
             try:
                 return os.path.abspath(os.popen('xdg-user-dir DESKTOP').read())
             except BaseException as error:
-                print(f'Ошибка функции определения рабочего стола:\n\t{error}')
+                logger.error(f'Ошибка функции определения рабочего стола:\n\t{error}')
                 return False
             else:
                 pass

@@ -10,7 +10,8 @@
         - обработка дирректории с фалами-паролями
 
     0.4.1
-        -введение логирования
+        - введение логирования
+        - скрытие лишних показов
 
         Мотрич Р.Д. ascent.mrd@yandex.ru 2025 г.
     ---------------------------------------------------------------------
@@ -22,7 +23,7 @@ from module_messenger import My_logger
 
 XPS = '.xps'
 TXT = '.txt'
-VERSION = '0.4'
+VERSION = '0.4.1'
 HELP = __doc__
 logger=My_logger
 
@@ -73,20 +74,20 @@ class ReaderXPS:
         :return:
         '''
         if os.path.isfile(file_name):
-            print(f'Файл {file_name} существует')
+            logger.info(f'Файл {file_name} существует')
             if Path(file_name).suffix == '.xps':
-                print(f'Полный путь к указанному файлу: \n\t {os.path.abspath(file_name)}')
+                logger.info(f'Полный путь к указанному файлу: \n\t {os.path.abspath(file_name)}')
                 return os.path.abspath(file_name)
             elif Path(file_name).suffix == '.txt':
-                print(f'Полный путь к указанному файлу: \n\t {os.path.abspath(file_name)}')
+                logger.info(f'Полный путь к указанному файлу: \n\t {os.path.abspath(file_name)}')
                 return os.path.abspath(file_name)
             else:
-                print(f'Файл {file_name} имеет неверное расширение')
+                logger.warning(f'Файл {file_name} имеет неверное расширение')
                 # self.error.append('wrong_file_suffix')
                 return False
                 # return os.path.abspath(file_name)
         else:
-            print(f'Файл {file_name} по указанному пути не существует.\n\tПроверьте путь и имя файла.')
+            logger.warning(f'Файл {file_name} по указанному пути не существует.\n\tПроверьте путь и имя файла.')
             # self.error.append('file_not_exists')
             return False
 
@@ -99,13 +100,13 @@ class ReaderXPS:
         if self.filePath:
             # Проверка расширения
             if self.fileSufx == XPS:
-                print('Предоставлен формат XPS.')
+                #print('Предоставлен формат XPS.')
                 return self.readXPSFirstPage()
             elif self.fileSufx == TXT:
-                print('Предоставлен формат TXT.')
+                #print('Предоставлен формат TXT.')
                 return self.readTXT()
             else:
-                print('Ошибка: Недопустимое расширение файла.')
+                logger.warning('Ошибка: Недопустимое расширение файла.')
                 return False
         else:
             return False
@@ -119,10 +120,10 @@ class ReaderXPS:
         # if len(self.error) == 0:
         try:
             document = fitz.open(self.filePath)
-            print('Успешное открытие файла для чтения первой страницы')
+            #print('Успешное открытие файла для чтения первой страницы')
         except BaseException as error:
             # Добавиь ошибку в self.error
-            print(f'Возникла ошибка {error} на этапе открытия файла')
+            logger.error(f'Возникла ошибка {error} на этапе открытия файла')
             # self.error.append(error)
             return False
         else:
@@ -130,17 +131,18 @@ class ReaderXPS:
         try:
             page = document.load_page(0)
             text = page.get_text()
-            print('Успешное чтение из файла')
+            # print('Успешное чтение из файла')
             # self.read_list = [i for i in text.split()]
             outList = [i for i in text.split()]
-            print(f'Прочитано: {outList}')
+            if __name__ == '__main__':
+                print(f'Прочитано: {outList}')
             if len(outList):
                 return outList  # [i for i in text.split()]#self.read_list
             else:
-                print('Файл пуст(нет текстовой информации).')
+                logger.warning('Файл пуст(нет текстовой информации).')
                 return False
         except BaseException as error:
-            print(f'Возникла ошибка {error} на этапе чтения файла')
+            logger.error(f'Возникла ошибка {error} на этапе чтения файла')
             # self.error.append(error)
             return False
         else:
@@ -151,24 +153,24 @@ class ReaderXPS:
             with open(self.filePath, 'r') as document:
                 try:
                     text = document.read()
-                    print('Успешное чтение из файла')
+                    #print('Успешное чтение из файла')
                     outList = [i for i in text.split()]
                     if __name__=='__main__':
                         print(f'Прочитано: {outList}')
                     if len(outList):
                         return outList  # [i for i in text.split()]#self.read_list
                     else:
-                        print('Файл пуст(нет текстовой информации).')
+                        logger.warning('Файл пуст(нет текстовой информации).')
                         return False
                 except BaseException as error:
-                    print(f'Возникла ошибка {error} на этапе чтения файла')
+                    logger.error(f'Возникла ошибка {error} на этапе чтения файла')
                     # self.error.append(error)
                     return False
                 else:
-                    print('Завершено чтение файла')
+                    logger.info('Завершено чтение файла')
         except BaseException as error:
             # Добавиь ошибку в self.error
-            print(f'Возникла ошибка {error} на этапе открытия файла')
+            logger.error(f'Возникла ошибка {error} на этапе открытия файла')
             # self.error.append(error)
             return False
         else:
@@ -195,7 +197,7 @@ class ReaderXPS:
                 else:
                     pass
         else:
-            print('Не предоставлены входные данные для выделения пароля')
+            logger.warning('Не предоставлены входные данные для выделения пароля')
             # self.error.append('password_parce_error')
             return False
 
@@ -204,27 +206,27 @@ class ReaderXPS:
         '''
         # Если у нас есть файл и нет ошибок
         # if len(self.error) == 0:
-        print(f'Начало записи txt из {self.filePath}')
+        logger.info(f'Начало записи txt из {self.filePath}')
         try:
             # Переименуем
             txtPath = self.filePath  # Path(self.filePath).name
             txtPath = Path(txtPath).with_suffix('.txt')
-            print(f'Новый путь: {txtPath}')
+            logger.info(f'Новый путь: {txtPath}')
             if os.path.isfile(txtPath):
                 print('ВНИМАНИЕ! ФАЙЛ СУЩЕСТВУЕТ! ФАЙЛ БУДЕТ ПЕРЕЗАПИСАН!')
             if self.filePath:
                 with open(txtPath, 'w') as txt:
-                    print(f'Открыли запись в txt {txtPath}')
+                    #print(f'Открыли запись в txt {txtPath}')
                     # strWrite=" ".join(self.read_list)
                     # print(f'ДЛЯ ЗАПИСИ: {strWrite}')
                     txt.write(' '.join(self.readList))
-                    print(f'Запись в txt {txtPath} завершена.')
+                    logger.info(f'Запись в txt {txtPath} завершена.')
                     return txtPath
             else:
-                print('Нет данных для записи, файл не будет записан.')
+                logger.warning('Нет данных для записи, файл не будет записан.')
                 return False
         except BaseException as e:
-            print(f'Ошибка записи txt:\n\t{e}')
+            logger.error(f'Ошибка записи txt:\n\t{e}')
             # self.error.append('wrong_write_txt')
             return False
         else:
@@ -365,7 +367,7 @@ class Mass_ReaderXPS:
 
 
 if __name__ == '__main__':
-    print(f'module_xps was loading like program.\nVersion: {VERSION}')
+    logger.info(f'module_xps was loading like program.\nVersion: {VERSION}')
     print(__doc__)
     # print('\n ОРГАНИЗОВАТЬ РАБОТУ С ФАЙЛАМИ TXT!!!')
     # doctest = ReaderXPS('2586 Linux.xps')

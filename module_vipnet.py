@@ -18,6 +18,8 @@
 
         0.2
         - Реализация логирования
+        - Получение прав в качестве параметра
+        *- вынесение функционала из CLI_module
 
     *не реализовано/не доработано
 
@@ -49,9 +51,12 @@ class My_ViPNet():
 
     '''
 
-    def __init__(self):
+    def __init__(self,permis=False):
+        self.error = False
         self.installed = self.checkViPNet()
-        self.privileges = My_Permissions()
+        self.privileges=permis
+        if not self.privileges:
+            self.privileges = My_Permissions()
         if self.installed:
             self.sysKeyInfo = self.getSysKeyInfo()
         else:
@@ -77,8 +82,8 @@ class My_ViPNet():
         Обновление состояния
         :return:
         '''
-        print('Обновление информации ViPNet...')
-        self.error=None
+        logger.info('Обновление информации ViPNet...')
+        self.error=False
         self.installed = self.checkViPNet()
         if self.installed:
             self.sysKeyInfo = self.getSysKeyInfo()
@@ -89,10 +94,10 @@ class My_ViPNet():
             try:
                 self.installedKey= self.sysKeyInfo['KEYSTATUS']
             except BaseException as error:
-                print('No_key')
+                logger.warning('No_key')
             else:
                 pass
-        print('Обновление информации ViPNet завершено.')
+        logger.info('Обновление информации ViPNet завершено.')
 
     def checkViPNet(self):
         '''
@@ -114,7 +119,7 @@ class My_ViPNet():
             # self.error.append(e)
             print('Возможно, ViPNet не установлен в системе.')
             print(f'Ошибка: {e}')
-            self.error=e
+            self.error=True
             return False
         else:
             return False
@@ -145,6 +150,7 @@ class My_ViPNet():
                         if len(sysKey)==0:
                             logger.info('!Возможно, випнет  установлен, но не настроен/настроен с ошибкой.')
                             logger.info('Возможное решение: переустановка через dpkg.')
+                            self.error=True
                     for line in sysKey.splitlines():
                         # Преобразовать в словарь по первым словам
                         if len(line):
@@ -209,6 +215,7 @@ class My_ViPNet():
                 return False
         except BaseException as error:
             print(f'При определении установленного ключа возникла ошибка:\n\t{error}')
+            self.error=True
             return False
         else:
             pass
