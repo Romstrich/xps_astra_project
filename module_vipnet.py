@@ -117,8 +117,8 @@ class My_ViPNet():
             return ViPNetInfo2.split()[-1]
         except BaseException as e:
             # self.error.append(e)
-            print('Возможно, ViPNet не установлен в системе.')
-            print(f'Ошибка: {e}')
+            logger.error('Возможно, ViPNet не установлен в системе.')
+            logger.error(f'Ошибка: {e}')
             self.error=True
             return False
         else:

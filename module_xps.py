@@ -96,7 +96,7 @@ class ReaderXPS:
          txt либо xps, для чего использует txtRead и xpsRead.
          :return Список слов из файла для дальнейшей обработки'''
         # Если файл есть и всё в порядке
-        print('Начнем чтение файла')
+        logger.info('Начнем чтение файла')
         if self.filePath:
             # Проверка расширения
             if self.fileSufx == XPS:
@@ -137,6 +137,7 @@ class ReaderXPS:
             if __name__ == '__main__':
                 print(f'Прочитано: {outList}')
             if len(outList):
+                logger.info('Завершено чтение файла, возврат списка')
                 return outList  # [i for i in text.split()]#self.read_list
             else:
                 logger.warning('Файл пуст(нет текстовой информации).')
@@ -146,7 +147,7 @@ class ReaderXPS:
             # self.error.append(error)
             return False
         else:
-            print('Завершено чтение файла')
+            logger.info('Завершено чтение файла')
 
     def readTXT(self):
         try:
@@ -213,7 +214,7 @@ class ReaderXPS:
             txtPath = Path(txtPath).with_suffix('.txt')
             logger.info(f'Новый путь: {txtPath}')
             if os.path.isfile(txtPath):
-                print('ВНИМАНИЕ! ФАЙЛ СУЩЕСТВУЕТ! ФАЙЛ БУДЕТ ПЕРЕЗАПИСАН!')
+                logger.warning('ВНИМАНИЕ! ФАЙЛ СУЩЕСТВУЕТ! ФАЙЛ БУДЕТ ПЕРЕЗАПИСАН!')
             if self.filePath:
                 with open(txtPath, 'w') as txt:
                     #print(f'Открыли запись в txt {txtPath}')

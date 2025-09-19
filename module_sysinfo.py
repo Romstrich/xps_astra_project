@@ -98,12 +98,14 @@ class My_System():
             for i in proc:
                 print(i.split())
 
-    def cernelAndUsers(self):
+    def kernelAndUsers(self):
         resDict={}
         if self.priveleges.sudoCanRun:
-            os.popen('sudo uname -r')
-            os.popen('sudo uname -v')
-            os.popen('sudo uname -m')
+            kernel=os.popen('uname -r')
+            for i in kernel:
+                print(i)
+            os.popen('uname -v')
+            os.popen('uname -m')
             os.popen("sudo awk -F: '$3 >= 1000 {print $1}' /etc/passwd  | grep -v nobody")
 
     def checkhLSHW(self):
@@ -137,8 +139,8 @@ class My_System():
             # print(self.memory())
             # print(self.showGPU())
             # print(self.netInterface())
-            print(self.diskInfo())
-            # self.cernelAndUsers()
+            # print(self.diskInfo())
+            self.kernelAndUsers()
         else:
             logger.warning('Нет прав')
 
