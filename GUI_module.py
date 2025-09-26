@@ -38,7 +38,7 @@
 import logging, os.path
 # import tkinter
 from tkinter import filedialog, ttk, font, Tk, Menu,PhotoImage,Text, Label,SUNKEN, X,W,END,LEFT
-from tkinter.messagebox import showinfo,showwarning
+from tkinter.messagebox import showinfo,showwarning,showerror
 from module_permissions import My_Permissions
 from module_messenger import My_logger
 from module_vipnet import My_ViPNet
@@ -68,9 +68,9 @@ class mainWin(Tk):
         # -----------Объект работы с данными
         logger.info('Загрузка BACKEND')
         self.backEnd = BackEndWork()
-        self.xfilepath=False
-        self.dfilepath = False
-        self.xtdirpath=False
+        #self.xfilepath=False
+        #self.dfilepath = False
+        #self.xtdirpath=False
         #self.xddirpath = False
         # -----------Загрузим кастомный шрифт и иконку
         try:
@@ -108,7 +108,7 @@ class mainWin(Tk):
         # =============Сборка раздела экспорта в txt
         self.filemenu.add_separator()
         self.filemenu.add_command(label="Сохранить как txt", state='disabled',command=lambda: self.saveAsTxt())  # , command=self.openfile)
-        self.filemenu.add_command(label="Сохранить все как txt", state='disabled')  # , command=self.openfile)
+        self.filemenu.add_command(label="Сохранить все как txt", state='disabled',command=lambda: self.saveDirxps())  # , command=self.openfile)
         # =============Сборка пункт меню выход - завершает программу
         self.filemenu.add_separator()
         self.filemenu.add_command(label="Выход", command=self.destroy)
@@ -168,6 +168,7 @@ class mainWin(Tk):
         # =============Проверка для пунктов меню, текстового поля и панели состояния
 
     # =============Контекстное меню
+
     def showConMenu(self, event):
         self.copyMenu.post(event.x_root, event.y_root)
     def copySelected(self):
@@ -178,6 +179,7 @@ class mainWin(Tk):
         except BaseException as error:
             logger.error(f'Ошибка копирования: {error}')
 
+    # =============Доступ к пулнктам меню
 
     def refreshMenu(self):
             '''Отключение пунктов меню по "показаниям"
@@ -187,6 +189,11 @@ class mainWin(Tk):
                 self.filemenu.entryconfig("Сохранить как txt", state='normal')
             else:
                 self.filemenu.entryconfig("Сохранить как txt", state='disable')
+            if self.backEnd.dirTxtPath:
+            #Сохранить каталог xps
+                self.filemenu.entryconfig([5], state='normal')
+            else:
+                self.filemenu.entryconfig([5], state='disable')
     #       Закрытие пунктов меню изходя из прав доступа
             if self.backEnd.permission.sudoCanRun:
                 #Закрыть пункты меню "Система" врежиме ограниченного функционала
@@ -238,6 +245,8 @@ class mainWin(Tk):
         if self.backEnd.xpsFile:
             status="Открыт xps файл: "+str(self.backEnd.xpsFile)
             readXPS=ReaderXPS(self.backEnd.xpsFile).getPasswd()
+            if self.backEnd.dirTxtPath:
+                status += ' Открыт каталог xps-документов.'
             # print(readXPS.getPasswd())
             # Передать пароль в буфер обмена
             status += "\nОпределён пароль"
@@ -249,7 +258,11 @@ class mainWin(Tk):
                 logger.error(f'Возникла ошибка передачи в буфер обмена: {error}')
             status+=': '+readXPS
         else:
-            status='Файл xps не открыт.\nПароль отсутствует.'
+            status='Файл xps не открыт.'
+            if self.backEnd.dirTxtPath:
+                status += ' Открыт каталог xps-документов:'+self.backEnd.dirTxtPath+'.'
+            status+='\nПароль отсутствует.'
+
         status += '\n'
 
         if self.backEnd.dstFile:
@@ -276,7 +289,7 @@ class mainWin(Tk):
                     status += "ViPNet-клиент не установлен. "
 
         else:
-            status += "Текущие права исключают возможность системных запросов."
+            status += "Текущие права исключают возможность системных запросов. Блокировка элементов меню."
         # else:
         #     status += 'dst файл не открыт'
         self.statusBar.config(text=status)
@@ -372,6 +385,7 @@ class mainWin(Tk):
         else:
             # self.xfilepath = filedialog.askopenfilename(filetypes=fTypes, initialdir='/home')
             self.backEnd.setXPS(filedialog.askopenfilename(filetypes=fTypes, initialdir='/home'))
+        self.backEnd.setDIR()
         # Передать файл Backend, проверить и обновить данные окна
         #self.backEnd.setXPS(self.xfilepath)
         self.refreshText()
@@ -386,19 +400,27 @@ class mainWin(Tk):
         logger.info('Сохраним одноимённый txt')
         try:
             xps=ReaderXPS(self.backEnd.xpsFile)
-            xps.saveAsTxt()
+            result=xps.saveAsTxt()
             self.filemenu.entryconfig("Сохранить как txt", state='disable')
         except BaseException as error:
             logger.error(f'При записи txt возникла ошибка: {error}')
+            showerror(title='Ошибка',message='При сохранении возникла ошибка:\n'+str(error))
+        finally:
+            if result == False:
+                showerror(title='Ошибка', message='При сохранении возникла ошибка.')
+            else:
+                showinfo(title='Информация', message='Файл сохранён.')
 
     def openDSTFile(self,dirPath=False):
         logger.info('Открытие файла dst')
         fTypes = [('Файлы dst', '.dst')]  # , ('Файлы txt', '.txt')]  # ,('Текстовые файлы','.txt')]
         if dirPath:
-            self.dfilepath = filedialog.askopenfilename(filetypes=fTypes, initialdir=dirPath)
+            # self.dfilepath = filedialog.askopenfilename(filetypes=fTypes, initialdir=dirPath)
+            self.backEnd.setDST(filedialog.askopenfilename(filetypes=fTypes, initialdir=dirPath))
         else:
-            self.dfilepath = filedialog.askopenfilename(filetypes=fTypes, initialdir='/home')
-        self.backEnd.dstFile = self.dfilepath
+            # self.dfilepath = filedialog.askopenfilename(filetypes=fTypes, initialdir='/home')
+            self.backEnd.setDST(filedialog.askopenfilename(filetypes=fTypes, initialdir='/home'))
+        # self.backEnd.dstFile = self.dfilepath
         self.refreshText()
         self.refreshStatusBar()
         # self.backEnd.refresh()
@@ -408,21 +430,47 @@ class mainWin(Tk):
     def openDirxps(self,dirPath=False):
         logger.info('Открытие каталога xps')
         if dirPath:
-            self.xdirpath = filedialog.askdirectory(initialdir=dirPath)
+            # self.xdirpath = filedialog.askdirectory(initialdir=dirPath)
+            self.backEnd.setDIR(filedialog.askdirectory(initialdir=dirPath),skipFiles=True)
         else:
-            self.xdirpath = filedialog.askdirectory(initialdir='/home')
+            # self.xdirpath = filedialog.askdirectory(initialdir='/home')
+            self.backEnd.setDIR(filedialog.askdirectory(initialdir='/home'),skipFiles=True)
         #Проверяем, есть ли xps в даннном каталоге, если есть - включаем пункт меню, -нет вывключаем
-        self.backEnd.setDIR(self.xdirpath)
-        massXPS=self.backEnd.checkXPSdir(self.xdirpath)
+        #self.backEnd.setDIR(self.xdirpath)
+        massXPS=self.backEnd.checkXPSdir(self.backEnd.dirTxtPath)
         if massXPS:
+            self.backEnd.setDIR(dirPath=self.backEnd.dirTxtPath,skipFiles=False)
             showinfo(title='Открытие каталога',message='Найдено '+str(len(massXPS.fileList))+' файлов xps.')
             #Если файлы найдены - обнулить дст и хпс
         else:
+            self.backEnd.setDIR()
             showwarning(title='Открытие каталога',message='Файлов xps в указанном каталоге не обнаружено.')
             # Если файлы не найдены - оставить дст и хпс
+        self.refreshText()
+        self.refreshStatusBar()
+        self.refreshMenu()
 
     def saveDirxps(self):
-        pass
+        logger.info('Сохранение файлов xps каталога в txt')
+        try:
+            MassXps = Mass_ReaderXPS(self.backEnd.dirTxtPath)
+            result = MassXps.writeDirToTXT()
+            # self.filemenu.entryconfig([5], state='disable')
+        except BaseException as error:
+            logger.error(f'При записи  возникла ошибка: {error}')
+            showerror(title='Ошибка', message='При сохранении возникла ошибка:\n' + str(error))
+        else:
+            #self.filemenu.entryconfig([5], state='disable')
+            #Сброс каталога
+            self.backEnd.setDIR()
+        finally:
+            if result == False:
+                showerror(title='Ошибка', message='При сохранении возникла ошибка.')
+            else:
+                showinfo(title='Информация', message='Файлы сохранены.')
+        self.refreshText()
+        self.refreshStatusBar()
+        self.refreshMenu()
 
         # =============Справка и информация
     def htmlHelp(self):
@@ -462,7 +510,7 @@ class BackEndWork():
         self.sysinfo=My_System(permis=self.permission)
 
     # =============Обновление пременных, выдыча данных
-    def setXPS(self,filePath):
+    def setXPS(self,filePath=False):
         '''
         !!!Применить проверку
         :param filePath:
@@ -470,7 +518,7 @@ class BackEndWork():
         '''
         self.xpsFile=filePath
 
-    def setDST(self,filePath):
+    def setDST(self,filePath=False):
         '''
                 !!!Применить проверку
                 :param filePath:
@@ -478,11 +526,23 @@ class BackEndWork():
                 '''
         self.dstFile=filePath
 
-    def setDIR(self,dirPath):
+    def setDIR(self,dirPath=False, skipFiles=False):
+        '''
+
+        :param dirPath: Если просто вызвать, без параметров - обнулит переменную каталога
+        :param skipFiles: оставить переменные файлов - True, обнулить - False
+        :return:
+        '''
         if dirPath:
             self.dirTxtPath=dirPath
+            if skipFiles:
+                pass
+            else:
+                self.setXPS()
+                self.setDST()
         else:
             self.dirTxtPath = False
+
 
     def refresh(self):#,xpsPath=False,dstPath=False,dirPath=False,dirTxtPath=False):
         '''Обновление данных
@@ -496,7 +556,6 @@ class BackEndWork():
 
         xpsPath=путь к xps
         dstPath=путь к dst
-        dirPath=каталог xps+dst
         dirTxtPath=каталог xps для перехода в txt
         (по аналогии с __init__)'''
         logger.info("Обновление данных")
@@ -504,7 +563,7 @@ class BackEndWork():
         logger.info("Проверка ViPNet клиента")
         self.vipnet.refresh()
         if self.vipnet.error:
-            logger.error('Ошибка обращения к vipnetcient. Рекомендую переустановить.')
+            logger.warning('Ошибка обращения к vipnetcient. Рекомендую переустановить.')
         self.sysinfo.updateInfo()
         # передача файлов пароля и dst
         logger.info("Проверка файлов")
