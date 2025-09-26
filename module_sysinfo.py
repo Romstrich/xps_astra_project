@@ -26,13 +26,17 @@ class My_System():
         self.priveleges = permis
         if not self.priveleges:
             self.priveleges = My_Permissions()
-        self.lshwInstalled = self.checkhLSHW()
+        if self.priveleges.sudoCanRun:
+            self.lshwInstalled = self.checkhLSHW()
+        else:
+            self.lshwInstalled = False
 
     def updateInfo(self):
         '''
         Запускает информационные функции
         :return:
         '''
+        self.lshwInstalled=self.checkhLSHW()
 
     def manufacture(self):
         '''
@@ -99,14 +103,29 @@ class My_System():
                 print(i.split())
 
     def kernelAndUsers(self):
-        resDict={}
+        resDict={'KERNELV':[],'KERNELR':[],'USERS':[]}
         if self.priveleges.sudoCanRun:
-            kernel=os.popen('uname -r')
-            for i in kernel:
-                print(i)
-            os.popen('uname -v')
-            os.popen('uname -m')
-            os.popen("sudo awk -F: '$3 >= 1000 {print $1}' /etc/passwd  | grep -v nobody")
+            kernelR=os.popen('uname -r')#kernel-release)
+            for i in kernelR:
+                resDict['KERNELR'].append(i[:-2])
+            kernelV=os.popen("bash -c 'uname -v'")#kernel-version
+            for i in kernelV:
+                resDict['KERNELV'].append(i[:-2])
+            # kernelM=os.popen("bash -c 'uname -o'")#--machine
+            # for i in kernelV:
+            #     print(i)
+            # os.popen(' bash -c "sudo awk -F: \'$3 >= 1000 {print $1}\' /etc/passwd  | grep -v nobody"')
+            # Попробуем распарсить вручную
+            with open('/etc/passwd','r') as userFile:
+                # tmp=userFile.read()
+                tmp = userFile.readlines()
+                for i in tmp:
+                    if int(i.split(':')[2])>=1000:
+                        if int(i.split(':')[2]) < 65000:
+                            resDict['USERS'].append(i.split(':')[0])
+
+            return resDict
+
 
     def checkhLSHW(self):
         '''наличие пакета для диагностики
@@ -134,13 +153,14 @@ class My_System():
 
     def cliOutput(self):
         if self.priveleges.sudoCanRun:
-            # print(self.manufacture())
-            # print(self.processor())
-            # print(self.memory())
-            # print(self.showGPU())
-            # print(self.netInterface())
-            # print(self.diskInfo())
-            self.kernelAndUsers()
+            print(self.manufacture())
+            print(self.processor())
+            print(self.memory())
+            print(self.showGPU())
+            print(self.netInterface())
+            print(self.diskInfo())
+            print(self.kernelAndUsers())
+            pass
         else:
             logger.warning('Нет прав')
 

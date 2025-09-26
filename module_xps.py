@@ -273,10 +273,10 @@ class Mass_ReaderXPS:
         Возврат абсолютного имени
         '''
         if os.path.isdir(dirname):
-            print(f'Каталог {dirname} существует')
+            logger.info(f'Каталог {dirname} существует')
             return os.path.abspath(dirname)
         else:
-            print(f'Каталог {dirname} по указанному пути не существует.\n\tПроверьте путь.')
+            logger.warning(f'Каталог {dirname} по указанному пути не существует.\n\tПроверьте путь.')
             # self.error.append('file_not_exists')
             return False
 
@@ -286,7 +286,7 @@ class Mass_ReaderXPS:
         '''
         out = []
         if self.dirName:
-            print(f'Получим список файлов с расширением xps.\t{self.dirName}')
+            logger.info(f'Получим список файлов с расширением xps.\t{self.dirName}')
             filelist = os.listdir(self.dirName)
             # print(filelist)
             for i in filelist:
@@ -294,13 +294,13 @@ class Mass_ReaderXPS:
                     # print(os.path.join(self.dirName,i))
                     out.append(os.path.join(self.dirName,i))
             if len(out):
-                print('Файлы xps обнаружены')
+                logger.info('Файлы xps обнаружены')
                 return out
             else:
-                print('Файлы xps не обнаружены')
+                logger.warning('Файлы xps не обнаружены')
                 return False
         else:
-            print(f'Не могу получить список файлов.\n\tСостояние каталога: {self.dirName}')
+            logger.warning(f'Не могу получить список файлов.\n\tСостояние каталога: {self.dirName}')
             return False
 
     def dataXPSdict(self):
@@ -309,15 +309,14 @@ class Mass_ReaderXPS:
         :return:
         '''
         out = {}
-        print('Построение словоря прочтённых данных')
+        logger.info('Построение словоря прочтённых данных')
         if self.fileList:
             for i in self.fileList:
                 out.update({Path(i).name: [i, ReaderXPS(i).readXPSFirstPage(), ReaderXPS(i).getPasswd()]})
             # print(out)
             return out
         else:
-            print(
-                f'Не могу получить список файлов.\n\tСостояние каталога: {self.dirName}\n\tСостояние списка: {self.fileList}')
+            logger.warning(f'Не могу получить список файлов.\n\tСостояние каталога: {self.dirName}\n\tСостояние списка: {self.fileList}')
             return False
 
     def printFileList(self):  # ,filelist=[]):
@@ -328,7 +327,10 @@ class Mass_ReaderXPS:
         if self.dirName:
             if self.fileList:
                 for i in self.fileList:
-                    print(i)
+                    if __name__=='__main__':
+                        print(i)
+                    else:
+                        logger.info(f'{i}')
 
     def printDataList(self, showfull=False):
         '''
@@ -344,7 +346,7 @@ class Mass_ReaderXPS:
                     print(f'{name}\tПароль: {data[2]}')
             return True
         else:
-            print('Нет словаря данных для вывода.')
+            logger.warning('Нет словаря данных для вывода.')
             return False
 
     def writeDirToTXT(self):
@@ -357,13 +359,12 @@ class Mass_ReaderXPS:
                 for i in self.fileList:
                     ReaderXPS(i).saveAsTxt()
             except BaseException as error:
-                print(f'При записи каталога возникла ошибка:\n\t{error}')
+                logger.error(f'При записи каталога возникла ошибка:\n\t{error}')
                 return False
-            print('Запись каталога завершена.')
+            logger.info('Запись каталога завершена.')
             return True
         else:
-            print(
-                f'Не могу получить список файлов.\n\tСостояние каталога: {self.dirName}\n\tСостояние списка: {self.fileList}')
+            logger.warning(f'Не могу получить список файлов.\n\tСостояние каталога: {self.dirName}\n\tСостояние списка: {self.fileList}')
             return False
 
 

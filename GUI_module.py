@@ -12,14 +12,18 @@
         *- окно системной информации
         *- вызов локальной веб-справки от лица пользователя
         *- диалоговые окна
-        - ведение логов
+        - ведение логов (+наличие диагностического режима)
         - загрузка шрифта
         - загрузка иконки
 
-    Сейчас: Наладка главного окна, шрифта и т.д. (оформление)
-    Сейчас: Наладка обработки xps-документа, создание вспомогательных окон,
+    +Сейчас: Наладка главного окна, шрифта и т.д. (оформление)
+    *Сейчас: Наладка обработки xps-документа, создание вспомогательных окон,
         проработка инструкции и помощи
-
+    *Сейчас: -Запрет редактирования текстового поля
+            -Реализация копирования из текстового поля
+            -Вывод в текстовое поле каталога xps, реализация массового сохранения, отработка
+            ситуации, когда документы не обнаружены.
+    *Сейчас: -Отладка пунктов меню. Их показ и скрытие в зависимости от состояния выполнения
 
     *не реализовано
 
@@ -38,9 +42,10 @@ from tkinter.messagebox import showinfo,showwarning
 from module_permissions import My_Permissions
 from module_messenger import My_logger
 from module_vipnet import My_ViPNet
-from module_xps import ReaderXPS
+from module_xps import ReaderXPS,Mass_ReaderXPS
 from pathlib import Path
 from module_xps import ReaderXPS
+from module_sysinfo import My_System
 
 VERSION = '0.3'
 HELP = __doc__
@@ -66,7 +71,7 @@ class mainWin(Tk):
         self.xfilepath=False
         self.dfilepath = False
         self.xtdirpath=False
-        self.xddirpath = False
+        #self.xddirpath = False
         # -----------Загрузим кастомный шрифт и иконку
         try:
             logger.info('Загрузка шрифта')
@@ -130,7 +135,7 @@ class mainWin(Tk):
         self.helpmenu.add_command(label="Инструкция")#, command=self.open_help)
         self.helpmenu.add_command(label="Помощь")#, command=self.openManual)
         self.helpmenu.add_separator()
-        self.helpmenu.add_command(label="О программе")#, command=self.open_about)
+        self.helpmenu.add_command(label="О программе",command=self.softInfo)#, command=self.open_about)
         # =============Добавление разделов в главное меню
         self.mainmenu.add_cascade(label="Файл", menu=self.filemenu)
         self.mainmenu.add_cascade(label="ViPNet", menu=self.vipnetmenu)#, state='disabled')
@@ -140,49 +145,86 @@ class mainWin(Tk):
         self.config(menu=self.mainmenu)
 
         # =============Сборка зоны просмотра и строки состояния
+        # =============Сборка копирования (правой кнопкой мыши)
+        self.copyMenu = Menu(self, tearoff=0)
+        self.copyMenu.add_command(label='Копировать', command=self.copySelected)
+
             # =============Сборка зоны просмотра
-        self.xpsText=Text(height=13 )
+        self.xpsText=Text(height=13,state='disabled')
         self.xpsText.place(relx=0,rely=0)
+        self.xpsText.bind("<Button-3>",self.showConMenu)
         self.xpsText.pack(fill=X)
             # =============Сборка строки состояния
         self.statusBar = Label(self, bd=1, relief=SUNKEN, anchor='nw',height=4,font=font.Font(size=6),justify='left')
         self.statusBar.pack(fill=X)
 
+
         # =============Диагностическое окно приветствия
         self.greetMessage()
-        self.refreshText()
-        self.refreshStatusBar()
-        self.refreshMenu()
+        # self.refreshText()
+        # self.refreshStatusBar()
+        # self.refreshMenu()
 
         # =============Проверка для пунктов меню, текстового поля и панели состояния
+
+    # =============Контекстное меню
+    def showConMenu(self, event):
+        self.copyMenu.post(event.x_root, event.y_root)
+    def copySelected(self):
+        try:
+            self.clipboard_clear()
+            self.clipboard_append(self.xpsText.selection_get())
+            logger.info('Выделенное скопировано.')
+        except BaseException as error:
+            logger.error(f'Ошибка копирования: {error}')
+
+
     def refreshMenu(self):
             '''Отключение пунктов меню по "показаниям"
             self.backend=BackEndWork()
             '''
-            # self.backEnd.refresh(xpsPath=self.xfilepath,dstPath=self.dfilepath,
-            #                      dirPath=self.xddirpath,dirTxtPath=self.xtdirpath)
-    #         Поработаем над сохранением в txt
             if self.backEnd.xpsFile:
                 self.filemenu.entryconfig("Сохранить как txt", state='normal')
             else:
                 self.filemenu.entryconfig("Сохранить как txt", state='disable')
+    #       Закрытие пунктов меню изходя из прав доступа
+            if self.backEnd.permission.sudoCanRun:
+                #Закрыть пункты меню "Система" врежиме ограниченного функционала
+                if not self.backEnd.vipnet.installed:
+                    self.mainmenu.entryconfig("ViPNet", state='disable')
+                    self.filemenu.entryconfig("Открыть dst", state='disable')
+                if self.backEnd.vipnet.installed:
+                    self.filemenu.entryconfig("Открыть dst", state='normal')
+                # self.sysmenu.entryconfig("Информация для паспорта", state='normal')
+                # self.sysmenu.entryconfig("Информация системная", state='normal')
+                    self.mainmenu.entryconfig("ViPNet", state='normal')
+                if self.backEnd.sysinfo.lshwInstalled:
+                    self.sysmenu.entryconfig("Информация системная",state='normal')
+                else:
+                    self.sysmenu.entryconfig("Информация системная", state='disable')
+            else:
+                self.filemenu.entryconfig("Открыть dst", state='disable')
+                self.sysmenu.entryconfig("Информация для паспорта", state='disable')
+                self.sysmenu.entryconfig("Информация системная", state='disable')
+                self.mainmenu.entryconfig("ViPNet", state='disable')
+            # self.sysmenu.entryconfig([2],state='disable') блокирование под номером а не по лейблу
 
 
     def refreshText(self):
         '''
         :return:
         '''
+        logger.info('Разблокирование текствого поля.')
+        self.xpsText.config(state='normal')
+        logger.info('Очистка текствого поля.')
         self.xpsText.delete("1.0", END)
         if self.backEnd.xpsFile:
             xps = ReaderXPS(self.backEnd.xpsFile)
-        # print(xps.readXPSFirstPage())
-        # print(xps.readXPSFirstPage(self.xfilepath))
-        # if self.backEnd.refreshText():
-        # self.xpsText.delete("1.0",END)
-        # self.xpsText.insert("1.0",self.backEnd.refreshText())
             self.xpsText.insert("1.0", xps.readXPSFirstPage())
         else:
             logger.warning('Нет открытого xps-файла. Нет текста. Поле оставляю пустым.')
+        logger.info('Блокирование текствого поля.')
+        self.xpsText.config(state='disable')
 
     def refreshStatusBar(self):
         '''
@@ -206,7 +248,6 @@ class mainWin(Tk):
             except BaseException as error:
                 logger.error(f'Возникла ошибка передачи в буфер обмена: {error}')
             status+=': '+readXPS
-
         else:
             status='Файл xps не открыт.\nПароль отсутствует.'
         status += '\n'
@@ -215,13 +256,29 @@ class mainWin(Tk):
             status+="Открыт dst файл: "+str(self.backEnd.dstFile)
         else:
             status+='dst файл не открыт'
-
         status += '\n'
         # В зависимости от прав и наличия клиента выдать сообщение
-        status += "Текущие права не дают возможности установить ключ"
+        if self.backEnd.permission.sudoCanRun:
+            #Выяснить судьбу випнет-клиента
+            #status += "Проверка состояния клиента"
+            if self.backEnd.vipnet.installed:
+                    #status += "Удачное обращение к ViPNet"
+                status += "ViPNet-клиент установлен. "
+                if self.backEnd.vipnet.error:
+                    status += "Ошибка при обращении к ViPNet. "
+                else:
+                    pass
+                if self.backEnd.vipnet.installedKey:
+                    status += "В системе имеется установленный ключ."
+                else:
+                    pass
+            else:
+                    status += "ViPNet-клиент не установлен. "
+
+        else:
+            status += "Текущие права исключают возможность системных запросов."
         # else:
         #     status += 'dst файл не открыт'
-
         self.statusBar.config(text=status)
 
 
@@ -292,6 +349,9 @@ class mainWin(Tk):
             showwarning(title="Предупреждение",message=message)
         if hide:
             self.deiconify()
+        self.refreshText()
+        self.refreshStatusBar()
+        self.refreshMenu()
 
 
 
@@ -307,11 +367,13 @@ class mainWin(Tk):
         logger.info('Открытие файла xps')
         fTypes = [('Файлы xps', '.xps')]#, ('Файлы txt', '.txt')]  # ,('Текстовые файлы','.txt')]
         if dirPath:
-            self.xfilepath = filedialog.askopenfilename(filetypes=fTypes,initialdir=dirPath)
+            # self.xfilepath = filedialog.askopenfilename(filetypes=fTypes,initialdir=dirPath)
+            self.backEnd.setXPS(filedialog.askopenfilename(filetypes=fTypes,initialdir=dirPath))
         else:
-            self.xfilepath = filedialog.askopenfilename(filetypes=fTypes, initialdir='/home')
+            # self.xfilepath = filedialog.askopenfilename(filetypes=fTypes, initialdir='/home')
+            self.backEnd.setXPS(filedialog.askopenfilename(filetypes=fTypes, initialdir='/home'))
         # Передать файл Backend, проверить и обновить данные окна
-        self.backEnd.xpsFile=self.xfilepath
+        #self.backEnd.setXPS(self.xfilepath)
         self.refreshText()
         self.refreshStatusBar()
         # self.backEnd.refresh()
@@ -330,26 +392,53 @@ class mainWin(Tk):
             logger.error(f'При записи txt возникла ошибка: {error}')
 
     def openDSTFile(self,dirPath=False):
+        logger.info('Открытие файла dst')
         fTypes = [('Файлы dst', '.dst')]  # , ('Файлы txt', '.txt')]  # ,('Текстовые файлы','.txt')]
         if dirPath:
             self.dfilepath = filedialog.askopenfilename(filetypes=fTypes, initialdir=dirPath)
         else:
             self.dfilepath = filedialog.askopenfilename(filetypes=fTypes, initialdir='/home')
+        self.backEnd.dstFile = self.dfilepath
+        self.refreshText()
+        self.refreshStatusBar()
+        # self.backEnd.refresh()
+        # print(os.path.abspath(self.xfilepath))
+        self.refreshMenu()
 
     def openDirxps(self,dirPath=False):
+        logger.info('Открытие каталога xps')
         if dirPath:
             self.xdirpath = filedialog.askdirectory(initialdir=dirPath)
         else:
             self.xdirpath = filedialog.askdirectory(initialdir='/home')
         #Проверяем, есть ли xps в даннном каталоге, если есть - включаем пункт меню, -нет вывключаем
-
-    def openDirxpsdst(self,dirPath=False):
-        if dirPath:
-            self.xddirpath = filedialog.askdirectory(initialdir=dirPath)
+        self.backEnd.setDIR(self.xdirpath)
+        massXPS=self.backEnd.checkXPSdir(self.xdirpath)
+        if massXPS:
+            showinfo(title='Открытие каталога',message='Найдено '+str(len(massXPS.fileList))+' файлов xps.')
+            #Если файлы найдены - обнулить дст и хпс
         else:
-            self.xddirpath = filedialog.askdirectory(initialdir='/home')
-    #Проверяем есть ли в данном каталоге xps и дст
+            showwarning(title='Открытие каталога',message='Файлов xps в указанном каталоге не обнаружено.')
+            # Если файлы не найдены - оставить дст и хпс
 
+    def saveDirxps(self):
+        pass
+
+        # =============Справка и информация
+    def htmlHelp(self):
+        '''
+        выполнить команду открытия html-помощи в браузере
+        :return:
+        '''
+        pass
+    def shortHelp(self):
+        pass
+    def softInfo(self):
+        #Реализуем через окно сообщения
+        message=TITLE+'\nАвтор: Р.Д.Мотрич\nКонтакт: ascent.mrd@yandex.ru\nМосква, 2025 г.'
+        showinfo(title="О программе", message=message)#,icon="lib/ico.png")
+
+        # =============Окно(а) информации паспорт, система, випнет, инструкция
 
 class BackEndWork():
     '''Класс внутренней работы'''
@@ -369,20 +458,41 @@ class BackEndWork():
         #передача пароля с рабочего стола
         self.xpsFile=self.checkXPSfile(dirPath=self.permission.userDesktop.split()[0])
         self.dstFile=self.checkDSTfile(dirPath=self.permission.userDesktop.split()[0])
-        #пароль:
+        self.dirTxtPath=False
+        self.sysinfo=My_System(permis=self.permission)
 
     # =============Обновление пременных, выдыча данных
-    def setXPS(self):
-        pass
+    def setXPS(self,filePath):
+        '''
+        !!!Применить проверку
+        :param filePath:
+        :return:
+        '''
+        self.xpsFile=filePath
 
-    def setDST(self):
-        pass
+    def setDST(self,filePath):
+        '''
+                !!!Применить проверку
+                :param filePath:
+                :return:
+                '''
+        self.dstFile=filePath
 
-    def refresh(self,xpsPath=False,dstPath=False,dirPath=False,dirTxtPath=False):
+    def setDIR(self,dirPath):
+        if dirPath:
+            self.dirTxtPath=dirPath
+        else:
+            self.dirTxtPath = False
+
+    def refresh(self):#,xpsPath=False,dstPath=False,dirPath=False,dirTxtPath=False):
         '''Обновление данных
-        !!!Получить входные параметры
-        if xpsPath+dstPath+dirPath+dirTxtPath==False:
-TypeError: can only concatenate str (not "bool") to str
+        #!!!Получить входные параметры
+        #if xpsPath+dstPath+dirPath+dirTxtPath==False:
+        #TypeError: can only concatenate str (not "bool") to str
+
+        Необходимо обойтись без входных параметров
+        задавать переменные методами set.
+        а здесь уже разгребать
 
         xpsPath=путь к xps
         dstPath=путь к dst
@@ -390,33 +500,34 @@ TypeError: can only concatenate str (not "bool") to str
         dirTxtPath=каталог xps для перехода в txt
         (по аналогии с __init__)'''
         logger.info("Обновление данных")
-        self.permission.refresh()
+        self.permission.refresh()#!ТРЕБУЕТСЯ ЛИ?
         logger.info("Проверка ViPNet клиента")
         self.vipnet.refresh()
         if self.vipnet.error:
             logger.error('Ошибка обращения к vipnetcient. Рекомендую переустановить.')
+        self.sysinfo.updateInfo()
         # передача файлов пароля и dst
         logger.info("Проверка файлов")
-        if dirPath:
-            #В приоретете
-            logger.info('Смотрим переданный каталог xps+dst')
-            pass
-        else:
-            #смотрим далее xps
-            if xpsPath:
-                logger.info('Смотрим переданный xps')
-            # смотрим далее dst
-            if dstPath:
-                logger.info('Смотрим переданный dst')
-            # смотрим далее каталог для преобразования в дст
-            if dirTxtPath:
-                logger.info('Смотрим переданный каталог xps в dst')
-        #если ничего нет падаем по дефолту:
-        if bool(xpsPath)+bool(dstPath)+bool(dirPath)+bool(dirTxtPath)==False:
-            logger.info('Смотрим рабочий стол')
-            self.xpsFile = self.checkXPSfile(dirPath=self.permission.userDesktop.split()[0])
-            self.dstFile = self.checkDSTfile(dirPath=self.permission.userDesktop.split()[0])
-        logger.info('Файлы проверены')
+        # if dirPath:
+        #     #В приоретете
+        #     logger.info('Смотрим переданный каталог xps+dst')
+        #     pass
+        # else:
+        #     #смотрим далее xps
+        #     if xpsPath:
+        #         logger.info('Смотрим переданный xps')
+        #     # смотрим далее dst
+        #     if dstPath:
+        #         logger.info('Смотрим переданный dst')
+        #     # смотрим далее каталог для преобразования в дст
+        #     if dirTxtPath:
+        #         logger.info('Смотрим переданный каталог xps в dst')
+        # #если ничего нет падаем по дефолту:
+        # if bool(xpsPath)+bool(dstPath)+bool(dirPath)+bool(dirTxtPath)==False:
+        #     logger.info('Смотрим рабочий стол')
+        #     self.xpsFile = self.checkXPSfile(dirPath=self.permission.userDesktop.split()[0])
+        #     self.dstFile = self.checkDSTfile(dirPath=self.permission.userDesktop.split()[0])
+        # logger.info('Файлы проверены')
 
     def refreshText(self):
         '''
@@ -502,13 +613,26 @@ TypeError: can only concatenate str (not "bool") to str
         else:
             return False
 
-    def checkXPSdir(self):
-        '''Проверка предполагаемой дирректории с xps-сами'''
-        return False
+    def checkXPSdir(self,dirPath):
+        '''Проверка предполагаемой дирректории с xps-сами
+        либо возвращает объект Mass_ReaderXPS
+        либо False'''
+        logger.info(f'Проверка каталога {dirPath} xps')
+        xpsToTxt=Mass_ReaderXPS(dirname=dirPath)
+        if xpsToTxt.fileList:
+            logger.info(f'Возвращаю список документов из каталога {dirPath}')
+            xpsToTxt.printFileList()
+            self.setDIR(dirPath)
+            return xpsToTxt
+        else:
+            self.setDIR(False)
+            logger.warning(f'Документов в каталоге {dirPath} не обнаружено!')
+            return False
 
-    def checkXPSDSTdir(self):
-        '''В каталоге должен быть и xps и дст'''
-        return False
+    # def checkXPSDSTdir(self):
+    #     '''В каталоге должен быть и xps и дст
+    #     !!!ЛИКВИДИРОВАНО'''
+    #     return False
 
     def searchBySuffix(self,dirname,suff):
         '''поиск по расширению файла'''
