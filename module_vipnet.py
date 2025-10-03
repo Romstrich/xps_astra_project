@@ -254,7 +254,7 @@ class My_ViPNet():
             # self.error.append('file_not_exists')
             return False
 
-    def installKey(self,dstFile=False,xpsFile=False):
+    def installKey(self,dstFile=False,xpsFile=False,innerpass=False):
         '''
         Установка ключа
         :return:
@@ -268,8 +268,11 @@ class My_ViPNet():
 
                 command+=' --psw '+ReaderXPS(xpsFile).getPasswd()
             else:
-                password=input('Отсутствует файл пароля на рабочем столе.\n\tВВЕДИТЕ ПАРОЛЬ:')
-                command += ' --psw ' + password
+                if innerpass:
+                    command += ' --psw ' + innerpass
+                else:
+                    password=input('Отсутствует файл пароля на рабочем столе.\n\tВВЕДИТЕ ПАРОЛЬ:')
+                    command += ' --psw ' + password
             #print(command)
 
             system(command)
@@ -335,7 +338,49 @@ class My_ViPNet():
 
 
     def ViPNetGUI(self):
-        pass
+        if self.privileges.sudoCanRun:
+            try:
+                command1 = ['sudo', '-S', 'vipnetclient-gui']
+                subprocess.call(command1)
+            except BaseException as error:
+                logger.error(f'При GUI ViPNet возникла ошибка:\n\t{error}')
+                return False
+            else:
+                logger.info('GUI запущен')
+                return True
+        else:
+            logger.warning('Привелегии не позволяют запуск системный GUI.')
+            return False
+
+    def autostartOn(self):
+        if self.privileges.sudoCanRun:
+            try:
+                command1 = ['sudo', '-S', 'vipnetclient', 'debug', '--autostart']
+                subprocess.call(command1)
+            except BaseException as error:
+                logger.error(f'При отключении автозапуска ViPNet возникла ошибка:\n\t{error}')
+                return False
+            else:
+                logger.info('Автозапуск выключен')
+                return True
+        else:
+            logger.warning('Привелегии не позволяют отключить автозапуск.')
+            return False
+
+    def autostartOff(self):
+        if self.privileges.sudoCanRun:
+            try:
+                command1 = ['sudo', '-S', 'vipnetclient', 'debug','--no-autostart']
+                subprocess.call(command1)
+            except BaseException as error:
+                logger.error(f'При отключении автозапуска ViPNet возникла ошибка:\n\t{error}')
+                return False
+            else:
+                logger.info('Автозапуск выключен')
+                return True
+        else:
+            logger.warning('Привелегии не позволяют отключить автозапуск.')
+            return False
 
     def printKeyInfo(self):
         try:

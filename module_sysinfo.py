@@ -75,7 +75,8 @@ class My_System():
                 if 'System memory' in i:
                     mem = i.split()
                     break
-        return mem[-3]
+#Проверь возврат!!! Может вывалить ошибку!!!
+        return mem#[-3]
 
     def showGPU(self):
         GPU = []
@@ -100,17 +101,19 @@ class My_System():
         if self.priveleges.sudoCanRun:
             proc = os.popen('sudo lshw -class disk')
             for i in proc:
-                print(i.split())
+                #print(i.split())
+                disk.append(i)
+        return disk
 
     def kernelAndUsers(self):
         resDict={'KERNELV':[],'KERNELR':[],'USERS':[]}
         if self.priveleges.sudoCanRun:
             kernelR=os.popen('uname -r')#kernel-release)
             for i in kernelR:
-                resDict['KERNELR'].append(i[:-2])
+                resDict['KERNELR'].append(i)
             kernelV=os.popen("bash -c 'uname -v'")#kernel-version
             for i in kernelV:
-                resDict['KERNELV'].append(i[:-2])
+                resDict['KERNELV'].append(i)
             # kernelM=os.popen("bash -c 'uname -o'")#--machine
             # for i in kernelV:
             #     print(i)
@@ -121,7 +124,7 @@ class My_System():
                 tmp = userFile.readlines()
                 for i in tmp:
                     if int(i.split(':')[2])>=1000:
-                        if int(i.split(':')[2]) < 65000:
+                        if int(i.split(':')[2]) < 60000:
                             resDict['USERS'].append(i.split(':')[0])
 
             return resDict
@@ -146,6 +149,7 @@ class My_System():
             if 'Status:' in resault:
                 if 'ok' in resault:
                     # print(resault)
+                    logger.info('lshw установлен')
                     return True
             else:
                 # print(resault)

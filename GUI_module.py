@@ -6,12 +6,12 @@
         Модуль реализации графического интерфейса, включаещего в себя:
         - главное окно программы
         - Приветственное сообщение, оно же  диагностическое
-        *- окно состояния ViPNet
-        *- окно информации о программе
-        *- окно паспортной информации
-        *- окно системной информации
+        - окно состояния ViPNet
+        - окно информации о программе
+        - окно паспортной информации
+        - окно системной информации
         *- вызов локальной веб-справки от лица пользователя
-        *- диалоговые окна
+        - диалоговые окна
         - ведение логов (+наличие диагностического режима)
         - загрузка шрифта
         - загрузка иконки
@@ -37,7 +37,7 @@
 
 import logging, os.path
 # import tkinter
-from tkinter import filedialog, ttk, font, Tk, Menu,PhotoImage,Text, Label,SUNKEN, X,W,END,LEFT
+from tkinter import filedialog, ttk, font, Tk, Menu,PhotoImage,Text, Label,SUNKEN, X,W,END,LEFT, Toplevel,WORD,Scrollbar,scrolledtext
 from tkinter.messagebox import showinfo,showwarning,showerror
 from module_permissions import My_Permissions
 from module_messenger import My_logger
@@ -49,7 +49,7 @@ from module_sysinfo import My_System
 
 VERSION = '0.3'
 HELP = __doc__
-TITLE='xps_astra v0.5 in development'
+TITLE='xps_astra v0.5 обкатка'
     # =============Настройка логирования
 logger=My_logger
     #логи в консоль
@@ -68,6 +68,8 @@ class mainWin(Tk):
         # -----------Объект работы с данными
         logger.info('Загрузка BACKEND')
         self.backEnd = BackEndWork()
+        #Семафор открытых информационных окон
+        self.infoOpened=[]
         #self.xfilepath=False
         #self.dfilepath = False
         #self.xtdirpath=False
@@ -75,16 +77,20 @@ class mainWin(Tk):
         # -----------Загрузим кастомный шрифт и иконку
         try:
             logger.info('Загрузка шрифта')
-            custom_font_path = "lib/PT-Astra-Serif_Regular.ttf"
+            custom_font_path = "lib/font/PT-Astra-Serif_Regular.ttf"
             custom_font = font.Font(family="AstraFont", size=12, name="custom_font")
             custom_font.configure(family=custom_font_path)
+            # custom_font = font.Font(family="TkTextFont", size=12, weight="normal", slant="roman")
             self.option_add('*Font', custom_font)
-            logger.info('Шрифт загружен')
+            #self.config(font=("Arial","12","normal","roman"))
+            # print(font.nametofont('TkTextFont').actual())
+
+            logger.info(f'Шрифт загружен: ')
         except BaseException as error:
-            logger.error("Неудачная загрузка шрифта")
+            logger.error(f"Неудачная загрузка шрифта: {error}")
         try:
             logger.info('Загрузка иконки')
-            icon=PhotoImage(file="lib/ico.png")
+            icon=PhotoImage(file="lib/logo/ico.png")
             self.iconphoto(True,icon)
             logger.info('Иконка загружена')
         except BaseException as error:
@@ -115,24 +121,24 @@ class mainWin(Tk):
         # =============Сборка раздела "ViPNet"
         #
         self.vipnetmenu = Menu(self.mainmenu, tearoff=0)
-        self.vipnetmenu.add_command(label="Информация о ViPNet (система)")  # , command=self.openfile)
-        self.vipnetmenu.add_command(label="Установить ключ (система)")  # , command=self.openfile)
+        self.vipnetmenu.add_command(label="Информация о ViPNet (система)",command=lambda:self.infoWindow('Информация о ViPNet',opened='vipnetinfo',loadData=self.backEnd.vipnetCondition()))  # , command=self.openfile)
+        self.vipnetmenu.add_command(label="Установить ключ (система)", command = self.setupKey)  # , command=self.openfile)
         self.vipnetmenu.add_separator()
         self.vipnetmenu.add_command(label="Запуск ViPNet (система)")  # , command=self.openfile)
         # self.vipnetmenu.add_command(label="Остановить ViPNet (система)")  # , command=self.openfile)
         self.vipnetmenu.add_command(label="Отключить автозапуск ViPNet")
         self.vipnetmenu.add_separator()
-        self.vipnetmenu.add_command(label="ViPNet-GUI (система)")  # , command=self.openfile)
+        self.vipnetmenu.add_command(label="ViPNet-GUI (система)", command=lambda : self.vipnetGUI())  # , command=self.openfile)
         self.vipnetmenu.add_separator()
-        self.vipnetmenu.add_command(label="Удалить системный ключ")  # , command=self.openfile)
+        self.vipnetmenu.add_command(label="Удалить системный ключ",command=self.deleteKey)  # , command=self.openfile)
         # =============Сборка раздела "Система"
         self.sysmenu=Menu(self.mainmenu,tearoff=0)
-        self.sysmenu.add_command(label='Информация для паспорта')
-        self.sysmenu.add_command(label='Информация системная')
+        self.sysmenu.add_command(label='Информация для паспорта',command=lambda:self.infoWindow('Информация для паспорта',opened='pasport',loadData=self.backEnd.pasportCondition()))
+        self.sysmenu.add_command(label='Информация системная',command=lambda:self.infoWindow('Информация системная',opened='sysinfo',loadData=self.backEnd.systemCondition()))
         self.sysmenu.add_command(label='Диагностическое окно',command=lambda : self.greetMessage(hide=False,refresh=True))
         # =============Сборка раздела "Справка"
         self.helpmenu = Menu(self.mainmenu,tearoff=0)#, tearoff=0)
-        self.helpmenu.add_command(label="Инструкция")#, command=self.open_help)
+        self.helpmenu.add_command(label="Инструкция",command=lambda:self.infoWindow('Инструкция (краткая)',showMenu=False,opened='shorthelp',loadData=self.backEnd.shortInfo()))#, command=self.open_help)
         self.helpmenu.add_command(label="Помощь")#, command=self.openManual)
         self.helpmenu.add_separator()
         self.helpmenu.add_command(label="О программе",command=self.softInfo)#, command=self.open_about)
@@ -150,7 +156,7 @@ class mainWin(Tk):
         self.copyMenu.add_command(label='Копировать', command=self.copySelected)
 
             # =============Сборка зоны просмотра
-        self.xpsText=Text(height=13,state='disabled')
+        self.xpsText=Text(height=13,state='disabled',wrap='word')
         self.xpsText.place(relx=0,rely=0)
         self.xpsText.bind("<Button-3>",self.showConMenu)
         self.xpsText.pack(fill=X)
@@ -194,7 +200,7 @@ class mainWin(Tk):
                 self.filemenu.entryconfig([5], state='normal')
             else:
                 self.filemenu.entryconfig([5], state='disable')
-    #       Закрытие пунктов меню изходя из прав доступа
+    #       Закрытие пунктов меню исходя из прав доступа
             if self.backEnd.permission.sudoCanRun:
                 #Закрыть пункты меню "Система" врежиме ограниченного функционала
                 if not self.backEnd.vipnet.installed:
@@ -214,6 +220,31 @@ class mainWin(Tk):
                 self.sysmenu.entryconfig("Информация для паспорта", state='disable')
                 self.sysmenu.entryconfig("Информация системная", state='disable')
                 self.mainmenu.entryconfig("ViPNet", state='disable')
+            #закрыть установку ключа, если уже есть установленный
+            if self.backEnd.vipnet.installedKey:
+                self.vipnetmenu.entryconfig("Удалить системный ключ", state="normal")#"Удалить системный ключ",state='normal')
+                self.vipnetmenu.entryconfig("Установить ключ (система)",state='disable')
+                #коефигурация кнопок запуска и остановки випнет
+                self.vipnetmenu.entryconfig([4], state='normal')
+                self.vipnetmenu.entryconfig([3], state='normal')
+                if self.backEnd.vipnet.sysKeyInfo['STATUS']:
+                    self.vipnetmenu.entryconfig([3], label="Остановить ViPNet (система)",command=lambda:self.vipnetOff())
+                else:
+                    self.vipnetmenu.entryconfig([3], label="Запуск ViPNet (система)",command=lambda:self.vipnetOn())
+                if self.backEnd.vipnet.sysKeyInfo['AUTOSTART']:
+                    self.vipnetmenu.entryconfig([4], label="Отключить автозапуск ViPNet",command= lambda:self.vipnetAutoOff())
+                else:
+                    self.vipnetmenu.entryconfig([4], label="Включить автозапуск ViPNet",command= lambda:self.vipnetAutoOn())
+
+            else:
+                self.vipnetmenu.entryconfig([4], state='disable')
+                self.vipnetmenu.entryconfig([3], state='disable')
+                self.vipnetmenu.entryconfig("Удалить системный ключ", state='disable')
+                if self.backEnd.dstFile:
+                    self.vipnetmenu.entryconfig("Установить ключ (система)", state='normal')
+                else:
+                    self.vipnetmenu.entryconfig("Установить ключ (система)", state='disable')
+            #Запуск/останов клиента
             # self.sysmenu.entryconfig([2],state='disable') блокирование под номером а не по лейблу
 
 
@@ -479,14 +510,127 @@ class mainWin(Tk):
         :return:
         '''
         pass
-    def shortHelp(self):
-        pass
+
     def softInfo(self):
         #Реализуем через окно сообщения
         message=TITLE+'\nАвтор: Р.Д.Мотрич\nКонтакт: ascent.mrd@yandex.ru\nМосква, 2025 г.'
         showinfo(title="О программе", message=message)#,icon="lib/ico.png")
 
         # =============Окно(а) информации паспорт, система, випнет, инструкция
+
+    def infoWindow(self,title='Вспомогательное', showMenu=True,opened='',loadData=[]):
+        '''
+        title - Заголовок
+        showMenu - показать наше скромное меню
+        opened - ставиить отметку, что окно открыто(По имени  в списке главного окна)
+        loadData - необходимое, для размещения в текстовом поле (Список, либо нечто иное)
+        !!!!!!!!!Проработать механизм передачи данных в текстовое поле
+                    Как вариант - списком построчно
+        :return:
+        '''
+        logger.info(f'Открытие вспомогательного окна {opened}')
+        if opened in self.infoOpened:
+            logger.warning('Уже есть открытое окно.')
+            showwarning(title='Предупреждение',message='Уже открыто окно "'+title+'"')
+            return False
+        else:
+            self.infoOpened.append(opened)
+        info=Toplevel(self)
+        info.geometry("600x300")
+        info.title(title)
+        if showMenu:
+            infoMenu=Menu(info)
+            info.config(menu=infoMenu)
+            infoMenu.add_command(label='Сохранить как',command=lambda : self.saveInfo(info.iText.get("1.0",END)))
+        else:
+            pass
+        #Реализация закрытия окна
+        info.protocol('WM_DELETE_WINDOW',lambda : self.closeInfo(info,opened))
+        # Добавим текстовое поле со скролом
+        info.iText=scrolledtext.ScrolledText(master=info,state='disable',wrap='word')
+        info.iText.place(relx=0, rely=0)
+        info.iText.bind("<Button-3>", self.showConMenu)
+        info.iText.pack(expand=True,fill='both',side='left')
+        #Отгрузка информации:
+        info.iText.config(state='normal')
+        info.iText.delete("1.0", END)
+        if type(loadData)==list:
+            for i in loadData:
+                info.iText.insert(END,str(i)+'\n')
+            info.iText.config(state='disable')
+            # if showMenu:
+            #     infoMenu.add_command([1],command=lambda : self.saveInfo(info.iText.get("1.0",END)))
+            #     # infoMenu.entryconfig()
+        else:
+            pass
+
+    def closeInfo(self,window,opened):
+        # self.infoOpened = False
+        logger.info(f'Закрытие вспомогательного окна {opened}')
+        self.infoOpened.remove(opened)
+        window.destroy()
+
+    def saveInfo(self,textInfo=''):
+        filePath=filedialog.asksaveasfilename(defaultextension=".txt",filetypes=[('Все файлы','*.*')],initialdir='/home')
+        if filePath:
+            with open(filePath,'w') as file:
+                file.write(textInfo)
+
+    def deleteKey(self):
+        showinfo('Информация','Приступаю к удалению системного ключа ViPNet...\nЗакройте для продолжения.')
+        self.backEnd.vipnet.deleteKey()
+        self.backEnd.refresh()
+        self.refreshMenu()
+        self.refreshText()
+        self.refreshStatusBar()
+
+    def setupKey(self):
+        from tkinter import simpledialog
+        password=False
+        if self.backEnd.dstFile:
+            pass
+        else:
+            showwarning('Предупреждение','Отсутствует dst-ключ!\nУстанавка прекращена.')
+            return False
+        if self.backEnd.xpsFile:
+            pass
+        else:
+            password=simpledialog.askstring('Запрос пароля ViPNet','Введите пароль')
+        showinfo('Информация', 'Приступаю к установке системного ключа ViPNet...\nЗакройте для продолжения.')
+        self.backEnd.vipnet.installKey(self.backEnd.dstFile,self.backEnd.xpsFile,innerpass=password)
+        self.backEnd.refresh()
+        self.refreshMenu()
+        self.refreshText()
+        self.refreshStatusBar()
+        if self.backEnd.vipnet.installedKey:
+            return True
+        else:
+            showerror('Ошибка','Ключ не был установлен!\n\nПроверьте пару пароль-ключ, либо закройте xps документ и введите пароль вручную.')
+            return False
+
+    def vipnetOn(self):
+        self.backEnd.vipnet.ViPNetStart()
+        self.backEnd.refresh()
+        self.refreshMenu()
+
+    def vipnetOff(self):
+        self.backEnd.vipnet.ViPNetStop()
+        self.backEnd.refresh()
+        self.refreshMenu()
+
+    def vipnetAutoOn(self):
+        self.backEnd.vipnet.autostartOn()
+        self.backEnd.refresh()
+        self.refreshMenu()
+
+    def vipnetAutoOff(self):
+        self.backEnd.vipnet.autostartOff()
+        self.backEnd.refresh()
+        self.refreshMenu()
+
+    def vipnetGUI(self):
+        showinfo('Информация', 'Запуск окна ViPNet с правами администратора.\n\nТекущее окно будет заблокировано')
+        self.backEnd.vipnet.ViPNetGUI()
 
 class BackEndWork():
     '''Класс внутренней работы'''
@@ -559,14 +703,16 @@ class BackEndWork():
         dirTxtPath=каталог xps для перехода в txt
         (по аналогии с __init__)'''
         logger.info("Обновление данных")
+        logger.info("Проверка прав")
         self.permission.refresh()#!ТРЕБУЕТСЯ ЛИ?
         logger.info("Проверка ViPNet клиента")
         self.vipnet.refresh()
         if self.vipnet.error:
             logger.warning('Ошибка обращения к vipnetcient. Рекомендую переустановить.')
+        logger.info("Проверка sysinfo")
         self.sysinfo.updateInfo()
         # передача файлов пароля и dst
-        logger.info("Проверка файлов")
+        logger.info("Проверка файлов и каталога (На доработке)")
         # if dirPath:
         #     #В приоретете
         #     logger.info('Смотрим переданный каталог xps+dst')
@@ -716,6 +862,107 @@ class BackEndWork():
         else:
             logger.error(f'Каталог {dirname} по указанному пути не существует.\n\tПроверьте путь.')
             return False
+
+    # =============Организация передачи данных в информационные окна
+    def vipnetCondition(self):
+        '''
+        :return:
+        Словарь состояния випнет
+        '''
+        result=[]
+        self.refresh()
+        if self.vipnet:
+            result.append(f'Установлен ViPNet версии: {self.vipnet.installed}')
+            if self.vipnet.installedKey:
+                if self.vipnet.sysKeyInfo['STATUS']:
+                    result.append('Состояние клиента - включён')
+                else:
+                    result.append('Состояние клиента - выключен')
+                result.append(f"Имя ключа: {' '.join(self.vipnet.sysKeyInfo['NAME'])}")
+                result.append(f"Идентификатор ключа: {' '.join(self.vipnet.sysKeyInfo['ID'])}")
+                result.append(f"Координатор: {' '.join(self.vipnet.sysKeyInfo['COORDINATOR'])}")
+                result.append(f"Имя сегмента сети: {' '.join(self.vipnet.sysKeyInfo['NETNAME'])}")
+                result.append(f"Идентификатор сети: {' '.join(self.vipnet.sysKeyInfo['NETID'])}")
+                if self.vipnet.sysKeyInfo['USER']=='root':
+                    result.append(f"Ключ установлен для системы.")
+                if self.vipnet.sysKeyInfo['AUTOSTART']:
+                    result.append(f"Автозапуск с системой включён")
+                else:
+                    result.append(f"Автозапуск с системой выключен")
+            else:
+                result.append(f'Ключ не установлен.')
+        else:
+            return ['ViPNet клиент не установлен']
+        return result
+
+    def pasportCondition(self):
+        from module_pasport import My_pasport
+        result = []
+        self.refresh()
+        pasport = My_pasport(permis=self.permission)
+        result.append('Сетевое имя:')
+        result.append(pasport.hostname)
+        result.append('Версия Astra Linux:')
+        result.append(pasport.astra_version)
+        result.append('Версия обновления Astra Linux')
+        result.append(pasport.astra_update_version)
+        result.append('Информация о сборке:')
+        result.append(pasport.astra_build_version)
+        result.append('Информация о сетевом соединении:')
+        result.append(pasport.ip)
+        result.append('MAC-адрес:')
+        result.append(pasport.mac)
+        result.append('Информация о носителях:')
+        for i in pasport.volumes:
+            result.append(f'-Диск: {i.get("name")};')
+            result.append(f'\tМодель: {i.get("model")};')
+            result.append(f'\tСерийный номер: {i.get("serial")};')
+            result.append(f'\tОбъём: {i.get("size")} GB;')
+            result.append(f'\tРасположение: {i.get("path")};')
+        # result.append(pasport.volumes)
+        # self.interfaces=[] считаем, что у нас один сетефой интерфейс  # -
+        result.append('Версия КриптоПро:')
+        result.append(pasport.cpro)
+        result.append('Лицензия КриптоПро:')
+        result.append(pasport.cproLic)
+        result.append('Пакеты СУДИС:')
+        result.append(pasport.sudisInfo)
+        result.append('Наличие Касперский антивирус:')
+        result.append(pasport.kesl)
+        return result
+
+    def systemCondition(self):
+        result=[]
+        result.append('Производитель:')
+        result.append(' '.join(self.sysinfo.manufacture()))
+        result.append('Процессор:')
+        result.append(' '.join(self.sysinfo.processor()))
+        result.append('Оперативная память:')
+        result.append(' '.join(self.sysinfo.memory()))
+        result.append('Графический адаптер:')
+        result.append(' '.join(self.sysinfo.showGPU()))
+        result.append('Сетевые интерфейсы:')
+        result.append(' '.join(self.sysinfo.netInterface()))
+        result.append('Накопители:')
+        for i in self.sysinfo.diskInfo():
+            result.append(i)
+        result.append('Ядро ОС:')
+        result.append('Версия:')
+        result.append(self.sysinfo.kernelAndUsers()['KERNELV'][0])
+        result.append('Выпуск:')
+        result.append(self.sysinfo.kernelAndUsers()['KERNELR'][0])
+        result.append('Пользователи:')
+        for i in self.sysinfo.kernelAndUsers()['USERS']:
+            result.append(i)
+
+        return result
+
+    def shortInfo(self):
+        result=[]
+        with open("lib/help/howto",'r') as f:
+            result=f.readlines()
+        return result
+
 
 
 

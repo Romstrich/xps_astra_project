@@ -162,9 +162,9 @@ class CLI_class:
                     reinstall=input('!!!-----Желаете переустановить?(y/n/d):')
                     if reinstall == 'y':
                         print('Приступаю к замене ключа.')
-                        print('Поиск dst-файла на Рабочем столе...')
+                        logger.info('Поиск dst-файла на Рабочем столе...')
                         dstFile = client.findFirstInDir(dirname=self.permissions.userDesktop.split()[0])
-                        print('Поиск xps-файла на Рабочем столе...')
+                        logger.info('Поиск xps-файла на Рабочем столе...')
                         try:
                             xpsFile = Mass_ReaderXPS(dirname=self.permissions.userDesktop.split()[0]).fileList[0]
                         except BaseException as error:
@@ -181,7 +181,7 @@ class CLI_class:
                             client.refresh()
                             client.printKeyInfoWide()
                         else:
-                            print('Файл ключа на рабочем столе не найден.')
+                            logger.warning('Файл ключа на рабочем столе не найден.')
                     elif reinstall == 'd':
                         logger.info('Приступаю к удалению ключа.')
                         client.deleteKey()
@@ -244,8 +244,8 @@ class CLI_class:
         if dirInfo.dirName:
             if dirInfo.fileList:
                 doc=ReaderXPS(dirInfo.fileList[0])
-                # print(f'\tСОДЕРЖИМОЕ:\n{" ".join(doc.readList)}')
-                # print(f'\tПАРОЛЬ:\n{doc.getPasswd()}')
+                print(f'\tСОДЕРЖИМОЕ:\n{" ".join(doc.readList)}')
+                print(f'\tПАРОЛЬ:\n{doc.getPasswd()}')
                 return doc.getPasswd()
             else:
                 print('Ошибка поиска файлов.')

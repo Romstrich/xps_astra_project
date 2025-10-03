@@ -1,14 +1,10 @@
 /.idea
 /venv
-/old
 /build
 *.xps
 *.dst
-/MODULES_OLD
-/Выпавшее
+/lib/tmp/*
 /__pycache__
-/forALSEsudis
 /log/*
-Пустой документ 2
-/lib/logo
-/lib/logo_askent
+/dist/*
+GUI_module.spec

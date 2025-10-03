@@ -1,8 +1,8 @@
 from cx_Freeze import setup, Executable
 
-executables = [Executable('CLI_module.py')]
+executables = [Executable('GUI_module.py')]
 
 setup(name='xps_astra',
-      version='0.4.a',
-      description='CLI_module',
+      version='0.5dev',
+      description='GUI_module',
       executables=executables)
